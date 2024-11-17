@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>提取文件路径名称清单</title>
+    <!-- 引入必要的库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        /* ... 样式代码，与之前的页面一致，可复用 ... */
+
+        /* 全局样式 */
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        /* 其他样式，与之前的页面相同，可根据需要调整 */
+
+        /* 页头部分的按钮样式 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .action-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .action-btn i {
+            font-size: 16px;
+        }
+
+        .add-file-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .add-file-btn:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .add-folder-btn {
+            background-color: #2196F3;
+            color: white;
+        }
+
+        .add-folder-btn:hover {
+            background-color: #1e88e5;
+            transform: translateY(-2px);
+        }
+
+        .clear-btn {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            background-color: #e53935;
+            transform: translateY(-2px);
+        }
+
+        .back-button {
+            padding: 12px 20px;
+            background-color: #34495e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .back-button:hover {
+            background-color: #2c3e50;
+            transform: translateY(-2px);
+        }
+
+        /* 导出按钮样式 */
+        .export-btn {
+            background-color: #9C27B0;
+            color: white;
+            padding: 14px 28px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px auto;
+            transition: all 0.3s ease;
+        }
+
+        .export-btn:hover {
+            background-color: #7B1FA2;
+            transform: translateY(-2px);
+        }
+
+        .export-btn:disabled {
+            background-color: #9e9e9e;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 文件列表样式优化 */
+        .file-list {
+            margin: 30px 0;
+            border-spacing: 0;
+            width: 100%;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .file-list th {
+            background-color: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .file-list td {
+            padding: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .file-list tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* 导出格式选择区域样式 */
+        .export-format {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin: 30px 0;
+        }
+
+        .export-format h3 {
+            margin: 0 0 20px 0;
+            color: #2c3e50;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 6px;
+            transition: background-color 0.3s;
+        }
+
+        .radio-group label:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .container {
+            animation: fadeIn 0.3s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <!-- 页头 -->
+    <div class="header">
+        <a href="aa.html" class="back-button">
+            <i class="fas fa-arrow-left"></i> 返回主页
+        </a>
+        <div class="top-actions">
+            <button onclick="document.getElementById('fileInput').click()" class="action-btn add-file-btn">
+                <i class="fas fa-file-upload"></i>
+                添加文件
+            </button>
+            <input type="file" id="fileInput" multiple style="display: none" onchange="handleFileSelect(event)">
+
+            <button onclick="document.getElementById('folderInput').click()" class="action-btn add-folder-btn">
+                <i class="fas fa-folder-plus"></i>
+                从文件夹导入
+            </button>
+            <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none" onchange="handleFileSelect(event)">
+
+            <button id="clearListBtn" onclick="clearList()" class="action-btn clear-btn" style="display: none">
+                <i class="fas fa-trash-alt"></i>
+                清空列表
+            </button>
+        </div>
+    </div>
+
+    <!-- 文件列表 -->
+    <div class="container">
+        <table class="file-list">
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>名称</th>
+                    <th>路径</th>
+                    <th>扩展名</th>
+                    <th>创建时间</th>
+                    <th>修改时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="fileListBody">
+                <tr>
+                    <td colspan="7" class="no-files-message">暂无文件，请添加文件...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 导出选项 -->
+    <div class="container">
+        <div class="setting-group">
+            <label>请选择导出格式：</label>
+            <div class="radio-group">
+                <label><input type="radio" name="exportFormat" value="xlsx" checked> Excel 文件 (.xlsx)</label>
+                <label><input type="radio" name="exportFormat" value="txt"> 文本文件 (.txt)</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="action-buttons">
+        <button id="exportButton" onclick="exportFileList()" class="process-btn" disabled>导出文件列表</button>
+    </div>
+
+    <!-- 脚本 -->
+    <script>
+        let fileList = [];
+
+        // 文件选择处理
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            for (let file of files) {
+                addFile(file);
+            }
+            event.target.value = '';
+            updateClearButtonVisibility();
+            checkExportAvailable();
+        }
+
+        function addFile(file) {
+            const fileInfo = {
+                index: fileList.length + 1,
+                name: file.name,
+                path: file.webkitRelativePath || file.name,
+                extension: file.name.split('.').pop(),
+                createTime: new Date(file.lastModified).toLocaleString(),
+                modifyTime: new Date(file.lastModified).toLocaleString(),
+                file: file
+            };
+            fileList.push(fileInfo);
+            updateFileList();
+        }
+
+        function updateFileList() {
+            const tbody = document.getElementById('fileListBody');
+            if (fileList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-files-message">暂无文件，请添加文件...</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            fileList.forEach((file, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${file.index}</td>
+                    <td>${file.name}</td>
+                    <td>${file.path}</td>
+                    <td>${file.extension}</td>
+                    <td>${file.createTime}</td>
+                    <td>${file.modifyTime}</td>
+                    <td><button onclick="removeFile(${index})" class="cancel-btn">取消</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+            checkExportAvailable();
+        }
+
+        function removeFile(index) {
+            fileList.splice(index, 1);
+            fileList.forEach((file, i) => file.index = i + 1);
+            updateFileList();
+            updateClearButtonVisibility();
+            checkExportAvailable();
+        }
+
+        function clearList() {
+            fileList = [];
+            updateFileList();
+            updateClearButtonVisibility();
+            checkExportAvailable();
+        }
+
+        function updateClearButtonVisibility() {
+            const clearListBtn = document.getElementById('clearListBtn');
+            clearListBtn.style.display = fileList.length > 0 ? 'block' : 'none';
+        }
+
+        function checkExportAvailable() {
+            const exportButton = document.getElementById('exportButton');
+            exportButton.disabled = fileList.length === 0;
+        }
+
+        function exportFileList() {
+            const exportFormat = document.querySelector('input[name="exportFormat"]:checked').value;
+
+            if (exportFormat === 'xlsx') {
+                exportToExcel();
+            } else if (exportFormat === 'txt') {
+                exportToTxt();
+            }
+        }
+
+        function exportToExcel() {
+            const wb = XLSX.utils.book_new();
+            const wsData = [
+                ['序号', '名称', '路径', '扩展名', '创建时间', '修改时间']
+            ];
+            fileList.forEach(file => {
+                wsData.push([
+                    file.index,
+                    file.name,
+                    file.path,
+                    file.extension,
+                    file.createTime,
+                    file.modifyTime
+                ]);
+            });
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            XLSX.utils.book_append_sheet(wb, ws, '文件列表');
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([wbout], { type: 'application/octet-stream' });
+            saveAs(blob, '文件列表.xlsx');
+        }
+
+        function exportToTxt() {
+            let content = '';
+            fileList.forEach(file => {
+                content += `序号: ${file.index}\n`;
+                content += `名称: ${file.name}\n`;
+                content += `路径: ${file.path}\n`;
+                content += `扩展名: ${file.extension}\n`;
+                content += `创建时间: ${file.createTime}\n`;
+                content += `修改时间: ${file.modifyTime}\n`;
+                content += '-------------------------\n';
+            });
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            saveAs(blob, '文件列表.txt');
+        }
+    </script>
+</body>
+</html> 

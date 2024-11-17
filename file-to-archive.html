@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>文件转成压缩包</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .back-button {
+            padding: 8px 15px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .back-button:hover {
+            background-color: #34495e;
+        }
+
+        .page-title {
+            font-size: 18px;
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-button {
+            padding: 8px 15px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .action-button:hover {
+            background-color: #34495e;
+        }
+
+        .action-button.disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .file-list {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .file-item {
+            display: grid;
+            grid-template-columns: 50px 2fr 3fr 1fr 2fr 2fr 80px;
+            gap: 10px;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            align-items: center;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-header {
+            font-weight: bold;
+            background-color: #f8f9fa;
+        }
+
+        .delete-button {
+            padding: 5px 10px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .delete-button:hover {
+            background-color: #c82333;
+        }
+
+        .next-step {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .settings {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .setting-item label {
+            margin-right: 10px;
+        }
+
+        .format-select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+
+        .password-input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            flex: 1;
+        }
+
+        .download-link {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .download-button {
+            padding: 10px 20px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+        }
+
+        .download-button:hover {
+            background-color: #219150;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <button class="back-button" onclick="window.location.href='aa.html'">
+                ← 返回
+            </button>
+            <h2 class="page-title">文件转成压缩包</h2>
+        </div>
+        <div class="header-right">
+            <button class="action-button" onclick="addFiles()">
+                <i>📄</i> 添加文件
+            </button>
+            <button class="action-button" onclick="importFolder()">
+                <i>📁</i> 导入文件夹
+            </button>
+            <button id="clearButton" class="action-button" style="display: none;" onclick="clearList()">
+                <i>🗑️</i> 清空列表
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="step1">
+            <div class="file-list">
+                <div class="file-item file-header">
+                    <div>序号</div>
+                    <div>名称</div>
+                    <div>路径</div>
+                    <div>扩展名</div>
+                    <div>创建时间</div>
+                    <div>修改时间</div>
+                    <div>操作</div>
+                </div>
+                <div id="fileListContainer"></div>
+            </div>
+
+            <div class="next-step">
+                <button id="nextButton" class="action-button" onclick="showSettings()" disabled>下一步</button>
+            </div>
+        </div>
+
+        <div id="step2" style="display: none;">
+            <div class="settings">
+                <div class="setting-item">
+                    <label>目标格式：</label>
+                    <select id="formatSelect" class="format-select">
+                        <option value="zip">ZIP</option>
+                        <option value="7z">7Z</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label>压缩包密码：</label>
+                    <input type="password" id="passwordInput" class="password-input" placeholder="可选，留空则无密码">
+                </div>
+            </div>
+            <div class="next-step">
+                <button class="action-button" onclick="createArchives()">保存压缩包</button>
+                <button class="action-button" onclick="goBack()">返回</button>
+            </div>
+        </div>
+
+        <div id="downloadSection" class="download-link" style="display: none;">
+            <h3>压缩包已生成：</h3>
+            <div id="downloadLinks"></div>
+        </div>
+    </div>
+
+    <script>
+        let fileList = [];
+
+        // 添加文件
+        function addFiles() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.multiple = true;
+            input.onchange = handleFiles;
+            input.click();
+        }
+
+        // 导入文件夹
+        function importFolder() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.webkitdirectory = true;
+            input.onchange = handleFiles;
+            input.click();
+        }
+
+        // 处理文件
+        function handleFiles(event) {
+            const files = Array.from(event.target.files);
+            files.forEach((file) => {
+                const fileInfo = {
+                    id: fileList.length + 1,
+                    file: file,
+                    name: file.name,
+                    path: file.webkitRelativePath || file.name,
+                    extension: file.name.split('.').pop().toLowerCase(),
+                    createTime: new Date(file.lastModified).toLocaleString(),
+                    modifyTime: new Date(file.lastModified).toLocaleString(),
+                };
+                fileList.push(fileInfo);
+            });
+            // 更新文件列表
+            updateFileList();
+            document.getElementById('clearButton').style.display = 'block';
+            document.getElementById('nextButton').disabled = false;
+        }
+
+        // 更新文件列表显示
+        function updateFileList() {
+            const container = document.getElementById('fileListContainer');
+            container.innerHTML = fileList.map(file => `
+                <div class="file-item">
+                    <div>${file.id}</div>
+                    <div>${file.name}</div>
+                    <div>${file.path}</div>
+                    <div>${file.extension}</div>
+                    <div>${file.createTime}</div>
+                    <div>${file.modifyTime}</div>
+                    <div>
+                        <button class="delete-button" onclick="deleteFile(${file.id})">删除</button>
+                    </div>
+                </div>
+            `).join('');
+            // 更新序号
+            fileList = fileList.map((file, index) => ({ ...file, id: index + 1 }));
+        }
+
+        // 删除文件
+        function deleteFile(id) {
+            fileList = fileList.filter(file => file.id !== id);
+            updateFileList();
+            if (fileList.length === 0) {
+                document.getElementById('clearButton').style.display = 'none';
+                document.getElementById('nextButton').disabled = true;
+            }
+        }
+
+        // 清空列表
+        function clearList() {
+            fileList = [];
+            updateFileList();
+            document.getElementById('clearButton').style.display = 'none';
+            document.getElementById('nextButton').disabled = true;
+        }
+
+        // 显示设置步骤
+        function showSettings() {
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+        }
+
+        // 返回上一步
+        function goBack() {
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step1').style.display = 'block';
+        }
+
+        // 创建压缩包
+        async function createArchives() {
+            const format = document.getElementById('formatSelect').value;
+            const password = document.getElementById('passwordInput').value;
+
+            // 检查浏览器是否支持压缩功能
+            if (!JSZip) {
+                alert('当前浏览器不支持压缩功能，请使用最新的浏览器。');
+                return;
+            }
+
+            const downloadLinks = document.getElementById('downloadLinks');
+            downloadLinks.innerHTML = '';
+
+            for (const fileInfo of fileList) {
+                const zip = new JSZip();
+                zip.file(fileInfo.name, fileInfo.file);
+
+                if (password) {
+                    // 使用密码加密（需要 JSZip 支持，该功能在 JSZip 3.0 以上版本中不可用）
+                    alert('抱歉，当前版本的 JSZip 不支持加密功能，压缩包将不含密码。');
+                }
+
+                const content = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(content);
+
+                const downloadLink = document.createElement('a');
+                downloadLink.href = url;
+                downloadLink.download = `${fileInfo.name}.${format}`;
+                downloadLink.textContent = `下载 ${fileInfo.name}.${format}`;
+                downloadLink.className = 'download-button';
+                downloadLink.style.display = 'block';
+                downloadLink.style.marginBottom = '10px';
+
+                downloadLinks.appendChild(downloadLink);
+            }
+
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('downloadSection').style.display = 'block';
+        }
+    </script>
+
+    <!-- 引入 JSZip 库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</body>
+</html> 

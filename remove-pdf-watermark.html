@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>删除PDF水印</title>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+    <script>
+        window.pdfjsLib = window['pdfjs-dist/build/pdf'];
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script>
+        window.jsPDF = window.jspdf.jsPDF;
+    </script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .back-button {
+            padding: 8px 15px;
+            background-color: #34495e;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .back-button:hover {
+            background-color: #2c3e50;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .file-list {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .file-list th, .file-list td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .file-list th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .file-list tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .action-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .action-description {
+            color: #666;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 4px;
+            background-color: #2c3e50;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #34495e;
+            transform: translateY(-2px);
+        }
+
+        .cancel-btn {
+            background-color: #e74c3c;
+        }
+
+        .cancel-btn:hover {
+            background-color: #c0392b;
+        }
+
+        #clearListBtn {
+            display: none;
+        }
+
+        .process-btn {
+            background-color: #2ecc71;
+            padding: 12px 30px;
+            font-size: 16px;
+        }
+
+        .process-btn:hover {
+            background-color: #27ae60;
+        }
+
+        .process-btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .download-btn {
+            background-color: #3498db;
+            padding: 12px 30px;
+            font-size: 16px;
+        }
+
+        .download-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .progress-container {
+            margin-top: 20px;
+            padding: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: #2ecc71;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .no-files-message {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            font-style: italic;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .container, .action-container {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .top-actions {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            .file-list {
+                display: block;
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="back-button" onclick="window.location.href='aa.html'">
+            ← 返回主页
+        </button>
+        <div class="top-actions">
+            <button onclick="document.getElementById('fileInput').click()">添加文件</button>
+            <input type="file" id="fileInput" multiple accept=".pdf" style="display: none" onchange="handleFileSelect(event)">
+            <button onclick="document.getElementById('folderInput').click()">从文件夹导入</button>
+            <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none" onchange="handleFileSelect(event)">
+            <button id="clearListBtn" onclick="clearList()" class="cancel-btn">清空列表</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <table class="file-list">
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>名称</th>
+                    <th>路径</th>
+                    <th>扩展名</th>
+                    <th>创建时间</th>
+                    <th>修改时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="fileListBody">
+                <tr>
+                    <td colspan="7" class="no-files-message">暂无文件，请添加文件...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="action-container">
+        <div class="action-description">
+            选择需要处理的PDF文件，此功能将删除PDF文件中的水印信息。
+            处理完成后，您可以下载处理好的文件。
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress"></div>
+            </div>
+            <div class="progress-text"></div>
+        </div>
+
+        <div class="action-buttons">
+            <button id="processButton" onclick="processFiles()" class="process-btn" disabled>
+                删除水印
+            </button>
+            <button id="downloadButton" onclick="downloadFiles()" class="download-btn" style="display: none;">
+                下载文件
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 文件列表管理
+        let fileList = [];
+
+        // 处理文件选择
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            for (let file of files) {
+                if (file.name.toLowerCase().endsWith('.pdf')) {
+                    addFile(file);
+                }
+            }
+            event.target.value = '';
+            updateClearButtonVisibility();
+            checkProcessingAvailable();
+        }
+
+        function addFile(file) {
+            const fileInfo = {
+                index: fileList.length + 1,
+                name: file.name,
+                path: file.webkitRelativePath || file.name,
+                extension: file.name.split('.').pop(),
+                createTime: new Date(file.lastModified).toLocaleString(),
+                modifyTime: new Date(file.lastModified).toLocaleString(),
+                file: file
+            };
+            fileList.push(fileInfo);
+            updateFileList();
+        }
+
+        function updateFileList() {
+            const tbody = document.getElementById('fileListBody');
+            if (fileList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-files-message">暂无文件，请添加文件...</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            fileList.forEach((file, index) => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${file.index}</td>
+                    <td>${file.name}</td>
+                    <td>${file.path}</td>
+                    <td>${file.extension}</td>
+                    <td>${file.createTime}</td>
+                    <td>${file.modifyTime}</td>
+                    <td><button onclick="removeFile(${index})" class="cancel-btn">取消</button></td>
+                `;
+            });
+            checkProcessingAvailable();
+        }
+
+        function removeFile(index) {
+            fileList.splice(index, 1);
+            fileList.forEach((file, i) => file.index = i + 1);
+            updateFileList();
+            updateClearButtonVisibility();
+        }
+
+        function clearList() {
+            fileList = [];
+            updateFileList();
+            updateClearButtonVisibility();
+        }
+
+        function updateClearButtonVisibility() {
+            const clearListBtn = document.getElementById('clearListBtn');
+            clearListBtn.style.display = fileList.length > 0 ? 'block' : 'none';
+        }
+
+        function checkProcessingAvailable() {
+            const processButton = document.getElementById('processButton');
+            processButton.disabled = fileList.length === 0;
+        }
+
+        async function processFiles() {
+            const processButton = document.getElementById('processButton');
+            const downloadButton = document.getElementById('downloadButton');
+            const progressBar = document.querySelector('.progress-bar');
+            const progress = document.querySelector('.progress');
+            const progressText = document.querySelector('.progress-text');
+
+            processButton.disabled = true;
+            progressBar.style.display = 'block';
+
+            try {
+                let processedFiles = [];
+
+                for (let i = 0; i < fileList.length; i++) {
+                    const percentage = ((i + 1) / fileList.length) * 100;
+                    progress.style.width = percentage + '%';
+                    progressText.textContent = `正在处理: ${fileList[i].name} (${Math.round(percentage)}%)`;
+
+                    try {
+                        const processedContent = await processFile(fileList[i].file);
+                        processedFiles.push({
+                            name: fileList[i].name,
+                            content: processedContent
+                        });
+                    } catch (error) {
+                        console.error(`处理文件 ${fileList[i].name} 时出错:`, error);
+                        throw new Error(`处理文件 ${fileList[i].name} 时出错: ${error.message}`);
+                    }
+                }
+
+                progressText.textContent = '处理完成！';
+                downloadButton.style.display = 'inline-block';
+                window.processedFiles = processedFiles;
+            } catch (error) {
+                progressText.textContent = '处理失败: ' + (error.message || '未知错误');
+                console.error('处理失败:', error);
+            } finally {
+                processButton.disabled = false;
+            }
+        }
+
+        async function processFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    try {
+                        const pdfData = new Uint8Array(e.target.result);
+                        const loadingTask = pdfjsLib.getDocument({ data: pdfData });
+                        const pdf = await loadingTask.promise;
+                        
+                        // 创建新的 PDF 文档
+                        const newPdf = new jsPDF();
+                        
+                        // 处理每一页
+                        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                            const page = await pdf.getPage(pageNum);
+                            
+                            // 获取页面内容
+                            const viewport = page.getViewport({ scale: 1.0 });
+                            
+                            // 创建 canvas
+                            const canvas = document.createElement('canvas');
+                            const context = canvas.getContext('2d');
+                            canvas.height = viewport.height;
+                            canvas.width = viewport.width;
+                            
+                            // 渲染页面到 canvas，但不包含水印
+                            const renderContext = {
+                                canvasContext: context,
+                                viewport: viewport,
+                                renderInteractiveForms: false,
+                                // 忽略水印层
+                                ignoreAnnotations: true,
+                                // 移除水印相关的内容
+                                transform: [1, 0, 0, 1, 0, 0]
+                            };
+                            
+                            await page.render(renderContext).promise;
+                            
+                            // 将 canvas 内容添加到新 PDF
+                            if (pageNum > 1) {
+                                newPdf.addPage();
+                            }
+                            const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                            newPdf.addImage(imgData, 'JPEG', 0, 0, viewport.width / 72 * 25.4, viewport.height / 72 * 25.4);
+                        }
+                        
+                        // 生成新的 PDF blob
+                        const blob = new Blob([newPdf.output('arraybuffer')], { type: 'application/pdf' });
+                        resolve(blob);
+                        
+                    } catch (error) {
+                        reject(new Error('处理 PDF 文件时出错: ' + error.message));
+                    }
+                };
+                reader.onerror = () => reject(new Error('读取文件时出错'));
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        async function downloadFiles() {
+            try {
+                window.processedFiles.forEach(file => {
+                    saveAs(file.content, `no_watermark_${file.name}`);
+                });
+            } catch (error) {
+                alert('下载失败: ' + error.message);
+            }
+        }
+
+        // 初始化
+        updateClearButtonVisibility();
+    </script>
+</body>
+</html> 

@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>提取PPT中的备注</title>
+    <!-- 引入必要的库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        /* 全局样式 */
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .back-button {
+            padding: 8px 15px;
+            background-color: #34495e;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background-color: #2c3e50;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .file-list {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .file-list th, .file-list td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .file-list th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .file-list tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .process-btn {
+            background-color: #2ecc71;
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .process-btn:hover {
+            background-color: #27ae60;
+        }
+
+        .process-btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .download-btn {
+            background-color: #3498db;
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            display: none;
+        }
+
+        .download-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: #2ecc71;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .no-files-message {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* 按钮样式 */
+        .top-actions button {
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .add-file-btn {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .add-file-btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .add-folder-btn {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .add-folder-btn:hover {
+            background-color: #27ae60;
+            transform: translateY(-2px);
+        }
+
+        .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        /* 添加图标 */
+        .btn-icon {
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 页头 -->
+    <div class="header">
+        <a href="aa.html" class="back-button">
+            ← 返回主页
+        </a>
+        <div class="top-actions">
+            <button onclick="document.getElementById('fileInput').click()" class="add-file-btn">
+                <span class="btn-icon">📄</span>添加文件
+            </button>
+            <input type="file" id="fileInput" multiple accept=".ppt,.pptx" style="display: none" onchange="handleFileSelect(event)">
+            
+            <button onclick="document.getElementById('folderInput').click()" class="add-folder-btn">
+                <span class="btn-icon">📁</span>从文件夹导入
+            </button>
+            <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none" onchange="handleFileSelect(event)">
+            
+            <button id="clearListBtn" onclick="clearList()" class="clear-btn" style="display: none">
+                <span class="btn-icon">🗑️</span>清空列表
+            </button>
+        </div>
+    </div>
+
+    <!-- 文件列表 -->
+    <div class="container">
+        <table class="file-list">
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>名称</th>
+                    <th>路径</th>
+                    <th>扩展名</th>
+                    <th>创建时间</th>
+                    <th>修改时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="fileListBody">
+                <tr>
+                    <td colspan="7" class="no-files-message">暂无文件，请添加文件...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="action-buttons">
+        <button id="processButton" onclick="processFiles()" class="process-btn" disabled>提取备注</button>
+        <button id="downloadButton" onclick="downloadNotes()" class="download-btn">下载备注</button>
+    </div>
+
+    <!-- 进度条和提示 -->
+    <div class="progress-bar">
+        <div class="progress"></div>
+    </div>
+    <div class="progress-text"></div>
+
+    <!-- 脚本 -->
+    <script>
+        let fileList = [];
+        let extractedNotes = [];
+
+        // 文件选择处理
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            const supportedExtensions = ['.ppt', '.pptx'];
+
+            for (let file of files) {
+                const extension = '.' + file.name.split('.').pop().toLowerCase();
+                if (supportedExtensions.includes(extension)) {
+                    addFile(file);
+                }
+            }
+            event.target.value = '';
+            updateClearButtonVisibility();
+            checkProcessingAvailable();
+        }
+
+        function addFile(file) {
+            const fileInfo = {
+                index: fileList.length + 1,
+                name: file.name,
+                path: file.webkitRelativePath || file.name,
+                extension: file.name.split('.').pop(),
+                createTime: new Date(file.lastModified).toLocaleString(),
+                modifyTime: new Date(file.lastModified).toLocaleString(),
+                file: file
+            };
+            fileList.push(fileInfo);
+            updateFileList();
+        }
+
+        function updateFileList() {
+            const tbody = document.getElementById('fileListBody');
+            if (fileList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-files-message">暂无文件，请添加文件...</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            fileList.forEach((file, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${file.index}</td>
+                    <td>${file.name}</td>
+                    <td>${file.path}</td>
+                    <td>${file.extension}</td>
+                    <td>${file.createTime}</td>
+                    <td>${file.modifyTime}</td>
+                    <td><button onclick="removeFile(${index})" class="cancel-btn">取消</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+            checkProcessingAvailable();
+        }
+
+        function removeFile(index) {
+            fileList.splice(index, 1);
+            fileList.forEach((file, i) => file.index = i + 1);
+            updateFileList();
+            updateClearButtonVisibility();
+            checkProcessingAvailable();
+        }
+
+        function clearList() {
+            fileList = [];
+            extractedNotes = [];
+            updateFileList();
+            updateClearButtonVisibility();
+            checkProcessingAvailable();
+        }
+
+        function updateClearButtonVisibility() {
+            const clearListBtn = document.getElementById('clearListBtn');
+            clearListBtn.style.display = fileList.length > 0 ? 'block' : 'none';
+        }
+
+        function checkProcessingAvailable() {
+            const processButton = document.getElementById('processButton');
+            processButton.disabled = fileList.length === 0;
+        }
+
+        async function processFiles() {
+            const processButton = document.getElementById('processButton');
+            const downloadButton = document.getElementById('downloadButton');
+            const progressBar = document.querySelector('.progress-bar');
+            const progress = document.querySelector('.progress');
+            const progressText = document.querySelector('.progress-text');
+
+            processButton.disabled = true;
+            progressBar.style.display = 'block';
+            extractedNotes = [];
+
+            try {
+                for (let i = 0; i < fileList.length; i++) {
+                    const percentage = ((i + 1) / fileList.length) * 100;
+                    progress.style.width = percentage + '%';
+                    progressText.textContent = `正在处理: ${fileList[i].name} (${Math.round(percentage)}%)`;
+
+                    try {
+                        const notes = await extractNotesFromPPT(fileList[i]);
+                        extractedNotes.push({
+                            fileName: fileList[i].name,
+                            notes: notes
+                        });
+                    } catch (error) {
+                        console.error(`处理文件 ${fileList[i].name} 时出错:`, error);
+                        alert(`处理文件 ${fileList[i].name} 时出错: ${error.message}`);
+                    }
+                }
+
+                progressText.textContent = '处理完成！';
+                downloadButton.style.display = extractedNotes.length > 0 ? 'inline-block' : 'none';
+                if (extractedNotes.length === 0) {
+                    alert('未提取到任何备注');
+                }
+
+            } catch (error) {
+                progressText.textContent = '处理失败: ' + (error.message || '未知错误');
+                console.error('处理失败:', error);
+            } finally {
+                processButton.disabled = false;
+            }
+        }
+
+        async function extractNotesFromPPT(fileInfo) {
+            const file = fileInfo.file;
+            const arrayBuffer = await file.arrayBuffer();
+            const zip = await JSZip.loadAsync(arrayBuffer);
+            const notes = [];
+
+            // 获取幻灯片列表
+            const slideRegex = /^ppt\/slides\/slide(\d+).xml$/;
+            const slideNumbers = [];
+
+            // 收集所有幻灯片编号
+            zip.forEach((relativePath) => {
+                const match = relativePath.match(slideRegex);
+                if (match) {
+                    slideNumbers.push(parseInt(match[1]));
+                }
+            });
+
+            // 按幻灯片顺序排序
+            slideNumbers.sort((a, b) => a - b);
+
+            // 遍历每个幻灯片，提取备注
+            for (const slideNumber of slideNumbers) {
+                try {
+                    // 尝试获取备注文件
+                    const notesPath = `ppt/notesSlides/notesSlide${slideNumber}.xml`;
+                    const notesFile = zip.file(notesPath);
+
+                    if (notesFile) {
+                        const notesXml = await notesFile.async('string');
+                        // 使用正则表达式直接匹配文本内容
+                        const textMatches = notesXml.match(/<a:t>([^<]+)<\/a:t>/g);
+                        
+                        if (textMatches) {
+                            let noteText = textMatches
+                                .map(match => match.replace(/<a:t>|<\/a:t>/g, '').trim())
+                                .filter(text => text.length > 0)
+                                .join('\n');
+
+                            if (noteText.trim()) {
+                                notes.push(`第 ${slideNumber} 页提取到的备注:\n${noteText.trim()}\n`);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.warn(`提取第 ${slideNumber} 页备注时出错:`, error);
+                }
+            }
+
+            return notes;
+        }
+
+        function downloadNotes() {
+            if (extractedNotes.length === 0) {
+                alert('没有可下载的备注');
+                return;
+            }
+
+            let allNotes = '';
+            extractedNotes.forEach(item => {
+                allNotes += `=== ${item.fileName} ===\n\n`;
+                if (item.notes.length > 0) {
+                    allNotes += item.notes.join('\n\n');
+                } else {
+                    allNotes += '此文件中未找到任何备注\n';
+                }
+                allNotes += '\n\n';
+            });
+
+            const blob = new Blob([allNotes], { type: 'text/plain;charset=utf-8' });
+            saveAs(blob, 'ppt_notes.txt');
+        }
+    </script>
+</body>
+</html> 

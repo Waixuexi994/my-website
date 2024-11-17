@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>图片颜色模型转换</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            overflow: hidden;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            border-color: #2c3e50;
+            background-color: #f8f9fa;
+        }
+        .upload-text {
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .preview-image {
+            max-width: 100%;
+            height: auto;
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .back-button {
+            padding: 8px 15px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        .back-button:hover {
+            background-color: #34495e;
+        }
+        .color-modes {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .mode-button {
+            padding: 10px 20px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .mode-button:hover {
+            background-color: #34495e;
+        }
+        .mode-button.active {
+            background-color: #27ae60;
+        }
+        .download-button {
+            padding: 10px 20px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            display: none;
+            margin-top: 20px;
+        }
+        .download-button:hover {
+            background-color: #219a52;
+        }
+        .preview-canvas {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        canvas {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <button class="back-button" onclick="window.location.href='aa.html'">← 返回主页面</button>
+    <div class="container">
+        <div class="upload-area" onclick="triggerFileInput()">
+            <div class="upload-text">点击或拖拽图片到此处</div>
+        </div>
+        <input type="file" id="fileInput" style="display: none;" accept="image/*" onchange="handleFileSelect(event)">
+        <canvas id="previewCanvas" style="display: none;"></canvas>
+        <div class="color-modes" id="colorModes" style="display: none;">
+            <button class="mode-button" onclick="convertColor('RGB')">RGB</button>
+            <button class="mode-button" onclick="convertColor('CMYK')">CMYK</button>
+            <button class="mode-button" onclick="convertColor('GRAY')">灰度</button>
+        </div>
+        <a id="downloadButton" class="download-button" href="#" download="converted-image.png">下载转换后的图片</a>
+    </div>
+
+    <script>
+        let originalImage = null;
+        let canvas = null;
+        let ctx = null;
+
+        function triggerFileInput() {
+            document.getElementById('fileInput').click();
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    originalImage = new Image();
+                    originalImage.onload = function() {
+                        initCanvas();
+                        document.getElementById('colorModes').style.display = 'flex';
+                    };
+                    originalImage.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                alert('请选择图片文件');
+            }
+        }
+
+        function initCanvas() {
+            canvas = document.getElementById('previewCanvas');
+            ctx = canvas.getContext('2d');
+            
+            // 计算适合容器的尺寸
+            const container = document.querySelector('.container');
+            const maxWidth = container.clientWidth - 40; // 减去内边距
+            const scale = maxWidth / originalImage.width;
+            
+            // 设置画布尺寸
+            canvas.width = originalImage.width * scale;
+            canvas.height = originalImage.height * scale;
+            
+            // 绘制图片
+            ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+            canvas.style.display = 'block';
+            document.getElementById('colorModes').style.display = 'flex';
+        }
+
+        function convertColor(mode) {
+            if (!canvas) return;
+
+            // 保持原始尺寸
+            canvas.width = originalImage.width;
+            canvas.height = originalImage.height;
+
+            // 重新绘制原始图像
+            ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            switch (mode) {
+                case 'RGB':
+                    // RGB模式不需要转换，但可以调整色彩平衡
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = data[i] * 1.2;     // 增强红色
+                        data[i + 1] = data[i + 1];   // 保持绿色
+                        data[i + 2] = data[i + 2];   // 保持蓝色
+                    }
+                    break;
+
+                case 'CMYK':
+                    // 模拟CMYK效果
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+
+                        // 简单的CMYK模拟
+                        data[i] = Math.max(0, Math.min(255, (g + b) / 2));     // 青色
+                        data[i + 1] = Math.max(0, Math.min(255, (r + b) / 2)); // 品红
+                        data[i + 2] = Math.max(0, Math.min(255, (r + g) / 2)); // 黄色
+                    }
+                    break;
+
+                case 'GRAY':
+                    // 转换为灰度
+                    for (let i = 0; i < data.length; i += 4) {
+                        const gray = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
+                        data[i] = data[i + 1] = data[i + 2] = gray;
+                    }
+                    break;
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+
+            // 更新下载按钮
+            const downloadButton = document.getElementById('downloadButton');
+            downloadButton.style.display = 'inline-block';
+            downloadButton.href = canvas.toDataURL('image/png');
+
+            // 更新按钮状态
+            document.querySelectorAll('.mode-button').forEach(button => {
+                button.classList.remove('active');
+                if (button.textContent === mode) {
+                    button.classList.add('active');
+                }
+            });
+        }
+
+        // 拖拽上传
+        const uploadArea = document.querySelector('.upload-area');
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#2c3e50';
+            uploadArea.style.backgroundColor = '#f8f9fa';
+        });
+
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#ccc';
+            uploadArea.style.backgroundColor = 'transparent';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#ccc';
+            uploadArea.style.backgroundColor = 'transparent';
+            
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const input = document.getElementById('fileInput');
+                input.files = e.dataTransfer.files;
+                handleFileSelect({ target: input });
+            } else {
+                alert('请选择图片文件');
+            }
+        });
+    </script>
+</body>
+</html> 

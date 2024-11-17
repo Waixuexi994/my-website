@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>文本差异对比</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        /* 返回按钮样式 */
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .back-button {
+            padding: 8px 15px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .back-button:hover {
+            background-color: #34495e;
+        }
+
+        .page-title {
+            font-size: 18px;
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        .diff-container {
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            height: calc(100vh - 140px);
+        }
+
+        .text-area {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .text-area h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .diff-editor {
+            width: 100%;
+            flex: 1;
+            padding: 15px;
+            font-size: 14px;
+            line-height: 1.6;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: white;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            box-sizing: border-box;
+        }
+
+        .diff-editor div {
+            padding: 2px 5px;
+            margin: 0;
+            min-height: 1.6em;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background-color: white;
+        }
+
+        .line-left {
+            background-color: #ffe6e6 !important;
+        }
+
+        .line-right {
+            background-color: #e6ffe6 !important;
+        }
+
+        .same-line {
+            background-color: #e6f3ff !important;
+        }
+
+        /* 底部按钮样式 */
+        .bottom-container {
+            text-align: center;
+            margin-top: 20px;
+            padding: 20px;
+        }
+
+        .compare-button {
+            padding: 12px 30px;
+            font-size: 16px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .compare-button:hover {
+            background-color: #34495e;
+        }
+
+        /* 添加说明样式 */
+        .instructions {
+            background-color: #f8f9fa;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .instructions h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+
+        .color-example {
+            display: flex;
+            gap: 20px;
+        }
+
+        .color-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .color-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .red-box {
+            background-color: #ffe6e6;
+        }
+
+        .green-box {
+            background-color: #e6ffe6;
+        }
+
+        .blue-box {
+            background-color: #e6f3ff;
+        }
+    </style>
+</head>
+<body>
+    <!-- 添加使用说明 -->
+    <div class="instructions">
+        <h3>使用说明：</h3>
+        <div class="color-example">
+            <div class="color-item">
+                <div class="color-box red-box"></div>
+                <span>左侧独有内容</span>
+            </div>
+            <div class="color-item">
+                <div class="color-box green-box"></div>
+                <span>右侧独有内容</span>
+            </div>
+            <div class="color-item">
+                <div class="color-box blue-box"></div>
+                <span>两侧相同内容</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 返回按钮和标题 -->
+    <div class="header">
+        <button class="back-button" onclick="window.location.href='aa.html'">
+            ← 返回
+        </button>
+        <h2 class="page-title">文本差异对比</h2>
+    </div>
+
+    <div class="diff-container">
+        <div class="text-area">
+            <h3>文本 1</h3>
+            <div id="editor1" class="diff-editor" contenteditable="true" spellcheck="false"></div>
+        </div>
+        <div class="text-area">
+            <h3>文本 2</h3>
+            <div id="editor2" class="diff-editor" contenteditable="true" spellcheck="false"></div>
+        </div>
+    </div>
+
+    <!-- 添加底部按钮 -->
+    <div class="bottom-container">
+        <button class="compare-button" onclick="compareTexts()">开始对比</button>
+    </div>
+
+    <script>
+        const editor1 = document.getElementById('editor1');
+        const editor2 = document.getElementById('editor2');
+
+        function compareTexts() {
+            const lines1 = editor1.innerText.split('\n');
+            const lines2 = editor2.innerText.split('\n');
+
+            const lines2Set = new Set(lines2);
+            const lines1Set = new Set(lines1);
+
+            // 更新编辑器1的内容和样式
+            editor1.innerHTML = lines1.map(line => {
+                const div = document.createElement('div');
+                div.textContent = line || ' ';  // 确保空行也有高度
+                if (lines2Set.has(line) && line.trim() !== '') {
+                    div.className = 'same-line';
+                } else if (line.trim() !== '') {
+                    div.className = 'line-left';
+                }
+                return div.outerHTML;
+            }).join('');
+
+            // 更新编辑器2的内容和样式
+            editor2.innerHTML = lines2.map(line => {
+                const div = document.createElement('div');
+                div.textContent = line || ' ';  // 确保空行也有高度
+                if (lines1Set.has(line) && line.trim() !== '') {
+                    div.className = 'same-line';
+                } else if (line.trim() !== '') {
+                    div.className = 'line-right';
+                }
+                return div.outerHTML;
+            }).join('');
+
+            // 确保编辑器始终至少有一个div
+            if (!editor1.hasChildNodes()) {
+                editor1.innerHTML = '<div><br></div>';
+            }
+            if (!editor2.hasChildNodes()) {
+                editor2.innerHTML = '<div><br></div>';
+            }
+        }
+
+        // 处理按键事件，确保正常换行和对齐
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const selection = window.getSelection();
+                const range = selection.getRangeAt(0);
+                
+                // 创建新的div元素
+                const newDiv = document.createElement('div');
+                newDiv.innerHTML = '<br>';
+                
+                // 获取当前行的div
+                let currentDiv = range.startContainer;
+                while (currentDiv && currentDiv.nodeName !== 'DIV') {
+                    currentDiv = currentDiv.parentNode;
+                }
+                
+                // 在当前行后插入新行
+                if (currentDiv && currentDiv.parentNode) {
+                    currentDiv.parentNode.insertBefore(newDiv, currentDiv.nextSibling);
+                    
+                    // 移动光标到新行
+                    range.setStart(newDiv, 0);
+                    range.setEnd(newDiv, 0);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                }
+            }
+        }
+
+        editor1.addEventListener('keypress', handleKeyPress);
+        editor2.addEventListener('keypress', handleKeyPress);
+
+        // 监听粘贴事件
+        function handlePaste(e) {
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData('text');
+            document.execCommand('insertText', false, text);
+        }
+
+        editor1.addEventListener('paste', handlePaste);
+        editor2.addEventListener('paste', handlePaste);
+
+        // 初始化编辑器
+        editor1.innerHTML = '<div><br></div>';
+        editor2.innerHTML = '<div><br></div>';
+    </script>
+</body>
+</html> 

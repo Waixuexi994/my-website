@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>文本合并成单个文件</title>
+    <!-- 引入必要的库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- 引入 Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* 样式与之前的页面保持一致 */
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        /* 页头样式 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .back-button {
+            padding: 10px 20px;
+            background-color: #34495e;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+        }
+
+        .back-button:hover {
+            background-color: #2c3e50;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .action-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .action-btn i {
+            font-size: 18px;
+        }
+
+        .add-file-btn {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .add-file-btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .add-folder-btn {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .add-folder-btn:hover {
+            background-color: #27ae60;
+            transform: translateY(-2px);
+        }
+
+        .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        /* 文件列表样式 */
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .file-list {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .file-list th, .file-list td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        .file-list th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .file-list tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .no-files-message {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* 合并方式设置样式 */
+        .settings {
+            margin-top: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .settings h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+
+        .settings .option-group {
+            margin-bottom: 20px;
+        }
+
+        .settings label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .option-desc {
+            color: #666;
+            font-size: 14px;
+            margin: 5px 0 0 28px;
+            font-style: italic;
+        }
+
+        /* 操作按钮样式 */
+        .action-buttons {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .process-btn {
+            padding: 12px 25px;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .process-btn:hover {
+            background-color: #27ae60;
+            transform: translateY(-2px);
+        }
+
+        .process-btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 进度条样式 */
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: #2ecc71;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <!-- 页头 -->
+    <div class="header">
+        <a href="aa.html" class="back-button">
+            <i class="fas fa-arrow-left"></i> 返回主页
+        </a>
+        <div class="top-actions">
+            <button onclick="document.getElementById('fileInput').click()" class="action-btn add-file-btn">
+                <i class="fas fa-file-upload"></i> 添加文件
+            </button>
+            <input type="file" id="fileInput" multiple accept=".txt" style="display: none" onchange="handleFileSelect(event)">
+
+            <button onclick="document.getElementById('folderInput').click()" class="action-btn add-folder-btn">
+                <i class="fas fa-folder-plus"></i> 从文件夹导入
+            </button>
+            <input type="file" id="folderInput" webkitdirectory directory multiple accept=".txt" style="display: none" onchange="handleFileSelect(event)">
+
+            <button id="clearListBtn" onclick="clearList()" class="action-btn clear-btn" style="display: none;">
+                <i class="fas fa-trash-alt"></i> 清空列表
+            </button>
+        </div>
+    </div>
+
+    <!-- 文件列表 -->
+    <div class="container">
+        <table class="file-list">
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>名称</th>
+                    <th>路径</th>
+                    <th>扩展名</th>
+                    <th>创建时间</th>
+                    <th>修改时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="fileListBody">
+                <tr>
+                    <td colspan="7" class="no-files-message">暂无文件，请添加文件...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 合并方式设置 -->
+    <div class="settings">
+        <h3>合并方式设置</h3>
+
+        <div class="option-group">
+            <label>合并方式：</label>
+            <div class="radio-group">
+                <label>
+                    <input type="radio" name="mergeMethod" value="allInOne" checked>
+                    将所有文件合并成一个文件
+                </label>
+                <p class="option-desc">
+                    将所有文件最终合并成一个文件，比如待处理列表中有 100 个文件，则在处理后只会得到一个文件。
+                </p>
+
+                <label>
+                    <input type="radio" name="mergeMethod" value="byFolder">
+                    将相同文件夹中最外层的文件单独合并
+                </label>
+                <p class="option-desc">
+                    如果某些文件在同一个「文件夹或子文件夹」的最外层，则会将这些文件单独进行合并，从而达到批量合并的效果。
+                    <br>
+                    例如，现有文件：'D:\a\1.txt', 'D:\a\2.txt', 'D:\b\x.txt', 'D:\b\y.txt'，则在合并后最终会得到两个文件，
+                    第一个文件是“1.txt”和“2.txt”合并的结果，第二个文件是“x.txt”和“y.txt”合并的结果。
+                </p>
+            </div>
+        </div>
+
+        <div class="option-group">
+            <label>合并后的文件名：</label>
+            <div class="radio-group">
+                <label>
+                    <input type="radio" name="fileNameOption" value="folderName" checked>
+                    将文件夹的名字作为合并后的文件名
+                </label>
+                <label>
+                    <input type="radio" name="fileNameOption" value="firstFileName">
+                    将第一个文件的文件名作为合并后的文件名
+                </label>
+            </div>
+        </div>
+
+        <div class="option-group">
+            <label>合并后的文件格式类型：</label>
+            <div class="radio-group">
+                <label>
+                    <input type="radio" name="fileFormatOption" value="sameAsFirst" checked>
+                    保持与第一个文件的格式相同
+                </label>
+                <label>
+                    <input type="radio" name="fileFormatOption" value="custom">
+                    自定义文件格式
+                </label>
+                <input type="text" id="customFormat" placeholder="请输入文件扩展名，如 .txt" style="display: none; margin-top: 10px;">
+            </div>
+        </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="action-buttons">
+        <button id="processButton" onclick="processFiles()" class="process-btn" disabled>开始合并</button>
+    </div>
+
+    <!-- 进度条和提示 -->
+    <div class="progress-bar">
+        <div class="progress"></div>
+    </div>
+    <div class="progress-text"></div>
+
+    <!-- 脚本 -->
+    <script>
+        let fileList = [];
+
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            for (let file of files) {
+                if (file.name.endsWith('.txt')) {
+                    addFile(file);
+                }
+            }
+            event.target.value = '';
+            updateClearButtonVisibility();
+        }
+
+        function addFile(file) {
+            const fileInfo = {
+                index: fileList.length + 1,
+                name: file.name,
+                path: file.webkitRelativePath || file.name,
+                extension: 'txt',
+                createTime: new Date(file.lastModified).toLocaleString(),
+                modifyTime: new Date(file.lastModified).toLocaleString(),
+                file: file,
+                folderName: getFolderName(file.webkitRelativePath || file.name)
+            };
+            fileList.push(fileInfo);
+            updateFileList();
+        }
+
+        function getFolderName(filePath) {
+            const parts = filePath.split('/');
+            if (parts.length >= 2) {
+                return parts[parts.length - 2];
+            } else {
+                return 'root';
+            }
+        }
+
+        function updateFileList() {
+            const tbody = document.getElementById('fileListBody');
+            if (fileList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-files-message">暂无文件，请添加文件...</td></tr>';
+                updateProcessButtonState();
+                return;
+            }
+
+            tbody.innerHTML = '';
+            fileList.forEach((file, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${file.index}</td>
+                    <td>${file.name}</td>
+                    <td>${file.path}</td>
+                    <td>${file.extension}</td>
+                    <td>${file.createTime}</td>
+                    <td>${file.modifyTime}</td>
+                    <td><button onclick="removeFile(${index})" class="cancel-btn">取消</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+            updateProcessButtonState();
+        }
+
+        function removeFile(index) {
+            fileList.splice(index, 1);
+            fileList.forEach((file, i) => file.index = i + 1);
+            updateFileList();
+            updateClearButtonVisibility();
+        }
+
+        function clearList() {
+            fileList = [];
+            updateFileList();
+            updateClearButtonVisibility();
+            updateProcessButtonState();
+        }
+
+        function updateClearButtonVisibility() {
+            const clearListBtn = document.getElementById('clearListBtn');
+            clearListBtn.style.display = fileList.length > 0 ? 'block' : 'none';
+        }
+
+        function updateProcessButtonState() {
+            const processButton = document.getElementById('processButton');
+            processButton.disabled = fileList.length === 0;
+        }
+
+        // 监听自定义格式选项的显示与隐藏
+        document.getElementsByName('fileFormatOption').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const customFormatInput = document.getElementById('customFormat');
+                if (this.value === 'custom') {
+                    customFormatInput.style.display = 'block';
+                } else {
+                    customFormatInput.style.display = 'none';
+                }
+            });
+        });
+
+        async function processFiles() {
+            const processButton = document.getElementById('processButton');
+            const progressBar = document.querySelector('.progress-bar');
+            const progress = document.querySelector('.progress');
+            const progressText = document.querySelector('.progress-text');
+
+            processButton.disabled = true;
+            progressBar.style.display = 'block';
+
+            try {
+                const mergeMethod = document.querySelector('input[name="mergeMethod"]:checked').value;
+                const fileNameOption = document.querySelector('input[name="fileNameOption"]:checked').value;
+                const fileFormatOption = document.querySelector('input[name="fileFormatOption"]:checked').value;
+                let customFormat = document.getElementById('customFormat').value.trim();
+
+                if (fileFormatOption === 'custom' && !customFormat.startsWith('.')) {
+                    alert('自定义文件格式请输入以“.”开头的扩展名，例如 .txt');
+                    processButton.disabled = false;
+                    return;
+                }
+
+                // 存储合并后的文件名和内容
+                let mergedFiles = [];
+
+                if (mergeMethod === 'allInOne') {
+                    // 将所有文件合并成一个文件
+                    let content = '';
+                    for (let i = 0; i < fileList.length; i++) {
+                        const fileContent = await fileList[i].file.text();
+                        content += fileContent + '\n';
+                    }
+
+                    let fileName = '';
+                    if (fileNameOption === 'folderName') {
+                        fileName = 'merged_file';
+                    } else {
+                        fileName = fileList[0].name.replace(/\.[^/.]+$/, '');
+                    }
+
+                    let extension = '';
+                    if (fileFormatOption === 'sameAsFirst') {
+                        extension = '.' + fileList[0].extension;
+                    } else {
+                        extension = customFormat;
+                    }
+
+                    mergedFiles.push({
+                        name: fileName + extension,
+                        content: content
+                    });
+                } else if (mergeMethod === 'byFolder') {
+                    // 将相同文件夹的文件合并
+                    const folderMap = {};
+                    for (let i = 0; i < fileList.length; i++) {
+                        const folderName = fileList[i].folderName;
+                        if (!folderMap[folderName]) {
+                            folderMap[folderName] = [];
+                        }
+                        folderMap[folderName].push(fileList[i]);
+                    }
+
+                    for (let folderName in folderMap) {
+                        let content = '';
+                        const filesInFolder = folderMap[folderName];
+                        for (let fileInfo of filesInFolder) {
+                            const fileContent = await fileInfo.file.text();
+                            content += fileContent + '\n';
+                        }
+
+                        let fileName = '';
+                        if (fileNameOption === 'folderName') {
+                            fileName = folderName;
+                        } else {
+                            fileName = filesInFolder[0].name.replace(/\.[^/.]+$/, '');
+                        }
+
+                        let extension = '';
+                        if (fileFormatOption === 'sameAsFirst') {
+                            extension = '.' + filesInFolder[0].extension;
+                        } else {
+                            extension = customFormat;
+                        }
+
+                        mergedFiles.push({
+                            name: fileName + extension,
+                            content: content
+                        });
+                    }
+                }
+
+                // 保存合并后的文件
+                for (let i = 0; i < mergedFiles.length; i++) {
+                    const blob = new Blob([mergedFiles[i].content], { type: 'text/plain;charset=utf-8' });
+                    saveAs(blob, mergedFiles[i].name);
+                }
+
+                progressText.textContent = '处理完成！';
+
+            } catch (error) {
+                progressText.textContent = '处理失败: ' + (error.message || '未知错误');
+                console.error('处理失败:', error);
+            } finally {
+                processButton.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html> 

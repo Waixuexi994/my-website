@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>添加Word水印</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .back-button {
+            padding: 8px 15px;
+            background-color: #34495e;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .back-button:hover {
+            background-color: #2c3e50;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .file-list {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .file-list th, .file-list td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .file-list th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .file-list tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .watermark-settings {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .setting-group:last-child {
+            border-bottom: none;
+        }
+
+        .setting-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .setting-group select, 
+        .setting-group input[type="text"],
+        .setting-group input[type="number"] {
+            width: 300px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .setting-group select:focus, 
+        .setting-group input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52,152,219,0.2);
+        }
+
+        .color-picker-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        button {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 4px;
+            background-color: #2c3e50;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #34495e;
+        }
+
+        .cancel-btn {
+            background-color: #e74c3c;
+        }
+
+        .cancel-btn:hover {
+            background-color: #c0392b;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #clearListBtn {
+            display: none;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        input[type="radio"] {
+            margin: 0;
+        }
+
+        .no-files-message {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .action-buttons {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .process-btn {
+            background-color: #2ecc71;
+            padding: 12px 30px;
+            font-size: 16px;
+        }
+
+        .process-btn:hover {
+            background-color: #27ae60;
+        }
+
+        .process-btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .download-btn {
+            background-color: #3498db;
+            padding: 12px 30px;
+            font-size: 16px;
+        }
+
+        .download-btn:hover {
+            background-color: #2980b9;
+        }
+
+        /* 添加进度条样式 */
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: #2ecc71;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 5px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://unpkg.com/pizzip@3.0.6/dist/pizzip.min.js"></script>
+    <script src="https://unpkg.com/docxtemplater@3.37.12/build/docxtemplater.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script src="https://unpkg.com/jszip-utils@0.1.0/dist/jszip-utils.min.js"></script>
+</head>
+<body>
+    <div class="header">
+        <button class="back-button" onclick="window.location.href='aa.html'">
+            ← 返回主页
+        </button>
+        <div class="top-actions">
+            <button onclick="document.getElementById('fileInput').click()">添加文件</button>
+            <input type="file" id="fileInput" multiple accept=".doc,.docx" style="display: none" onchange="handleFileSelect(event)">
+            <button onclick="document.getElementById('folderInput').click()">从文件夹导入</button>
+            <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none" onchange="handleFileSelect(event)">
+            <button id="clearListBtn" onclick="clearList()" class="cancel-btn">清空列表</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <table class="file-list">
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>名称</th>
+                    <th>路径</th>
+                    <th>扩展名</th>
+                    <th>创建时间</th>
+                    <th>修改时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="fileListBody">
+                <tr>
+                    <td colspan="7" class="no-files-message">暂无文件，请添加文件...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="watermark-settings">
+        <div class="setting-group">
+            <label>水印类型：</label>
+            <div class="radio-group">
+                <label><input type="radio" name="watermarkType" value="text" checked> 文字水印</label>
+                <label><input type="radio" name="watermarkType" value="image"> 图片水印</label>
+            </div>
+        </div>
+
+        <div id="textWatermarkSettings">
+            <div class="setting-group">
+                <label>水印文字：</label>
+                <input type="text" id="watermarkText" placeholder="请输入水印文字">
+            </div>
+
+            <div class="setting-group">
+                <label>字体：</label>
+                <select id="fontFamily">
+                    <option value="宋体">宋体</option>
+                    <option value="微软雅黑">微软雅黑</option>
+                    <option value="">黑体</option>
+                    <option value="楷体">楷体</option>
+                </select>
+            </div>
+
+            <div class="setting-group">
+                <label>字号：</label>
+                <input type="number" id="fontSize" min="1" max="100" value="36">
+            </div>
+
+            <div class="setting-group">
+                <label>颜色：</label>
+                <div class="color-picker-group">
+                    <input type="color" id="fontColor" value="#000000">
+                    <label><input type="checkbox" id="transparent"> 半透明</label>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <label>版式：</label>
+                <select id="layout">
+                    <option value="header">页眉水印</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="imageWatermarkSettings" style="display: none;">
+            <div class="setting-group">
+                <label>选择图片：</label>
+                <input type="file" accept="image/*" id="watermarkImage">
+            </div>
+        </div>
+
+        <!-- 添加进度条 -->
+        <div class="progress-bar">
+            <div class="progress"></div>
+        </div>
+        <div class="progress-text"></div>
+
+        <!-- 处理按钮 -->
+        <div class="action-buttons">
+            <button id="processButton" onclick="processWatermark()" class="process-btn" disabled>
+                添加水印
+            </button>
+            <button id="downloadButton" onclick="downloadFiles()" class="download-btn" style="display: none;">
+                下载文件
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 文件列表管理
+        let fileList = [];
+
+        // 处理文件选择
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            for (let file of files) {
+                if (file.name.endsWith('.doc') || file.name.endsWith('.docx')) {
+                    addFile(file);
+                }
+            }
+            // 清空input的value，确保能重复选择同一个文件
+            event.target.value = '';
+            updateClearButtonVisibility();
+        }
+
+        function addFile(file) {
+            const fileInfo = {
+                index: fileList.length + 1,
+                name: file.name,
+                path: file.webkitRelativePath || file.name,
+                extension: file.name.split('.').pop(),
+                createTime: new Date(file.lastModified).toLocaleString(),
+                modifyTime: new Date(file.lastModified).toLocaleString(),
+                file: file
+            };
+            fileList.push(fileInfo);
+            updateFileList();
+        }
+
+        function updateFileList() {
+            const tbody = document.getElementById('fileListBody');
+            if (fileList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-files-message">暂无文件，请添加文件...</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            fileList.forEach((file, index) => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${file.index}</td>
+                    <td>${file.name}</td>
+                    <td>${file.path}</td>
+                    <td>${file.extension}</td>
+                    <td>${file.createTime}</td>
+                    <td>${file.modifyTime}</td>
+                    <td><button onclick="removeFile(${index})" class="cancel-btn">取消</button></td>
+                `;
+            });
+        }
+
+        function removeFile(index) {
+            fileList.splice(index, 1);
+            fileList.forEach((file, i) => file.index = i + 1);
+            updateFileList();
+            updateClearButtonVisibility();
+        }
+
+        function clearList() {
+            fileList = [];
+            updateFileList();
+            updateClearButtonVisibility();
+        }
+
+        function updateClearButtonVisibility() {
+            const clearListBtn = document.getElementById('clearListBtn');
+            clearListBtn.style.display = fileList.length > 0 ? 'block' : 'none';
+        }
+
+        // 切换水印类型
+        document.getElementsByName('watermarkType').forEach(radio => {
+            radio.addEventListener('change', function() {
+                document.getElementById('textWatermarkSettings').style.display = 
+                    this.value === 'text' ? 'block' : 'none';
+                document.getElementById('imageWatermarkSettings').style.display = 
+                    this.value === 'image' ? 'block' : 'none';
+            });
+        });
+
+        // 加载更多字体选项
+        function loadFonts() {
+            const fonts = [
+                "Arial", "Times New Roman", "Calibri", "Cambria", "Century Gothic",
+                "Consolas", "Courier New", "Georgia", "Impact", "Lucida Console",
+                "Palatino Linotype", "Segoe UI", "Tahoma", "Trebuchet MS", "Verdana",
+                "方正黑体", "方正书宋", "华文仿宋", "���文楷体", "华文宋体",
+                "华文中宋", "仿宋", "幼圆", "隶书", "新宋"
+            ];
+            
+            const fontSelect = document.getElementById('fontFamily');
+            fonts.forEach(font => {
+                const option = document.createElement('option');
+                option.value = font;
+                option.textContent = font;
+                fontSelect.appendChild(option);
+            });
+        }
+
+        // 初始化
+        loadFonts();
+        updateClearButtonVisibility();
+
+        // 检查是否可以处理
+        function checkProcessingAvailable() {
+            const processButton = document.getElementById('processButton');
+            const hasFiles = fileList.length > 0;
+            const hasText = document.getElementById('watermarkText').value.trim() !== '';
+            
+            processButton.disabled = !(hasFiles && (
+                (document.querySelector('input[name="watermarkType"]:checked').value === 'text' && hasText) ||
+                (document.querySelector('input[name="watermarkType"]:checked').value === 'image' && 
+                 document.getElementById('watermarkImage').files.length > 0)
+            ));
+        }
+
+        // 修改 processFile 函数
+        async function processFile(file) {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const zip = new PizZip(arrayBuffer);
+                
+                // 获取水印设置
+                const watermarkText = document.getElementById('watermarkText').value;
+                const fontFamily = document.getElementById('fontFamily').value;
+                const fontSize = parseInt(document.getElementById('fontSize').value);
+                const fontColor = document.getElementById('fontColor').value;
+                const isTransparent = document.getElementById('transparent').checked;
+
+                // 创建水印 XML
+                const watermarkXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                    <w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+                           xmlns:v="urn:schemas-microsoft-com:vml"
+                           xmlns:o="urn:schemas-microsoft-com:office:office"
+                           xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+                        <w:p>
+                            <w:pPr>
+                                <w:jc w:val="center"/>
+                            </w:pPr>
+                            <w:r>
+                                <w:rPr>
+                                    <w:noProof/>
+                                </w:rPr>
+                                <w:t>${watermarkText}</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:hdr>`;
+
+                // 获取 document.xml 内容
+                let documentXml = zip.files['word/document.xml'].asText();
+
+                // 添加页眉水印
+                zip.file('word/header1.xml', watermarkXml);
+
+                // 更新关系文件
+                let relsXml = zip.files['word/_rels/document.xml.rels'].asText();
+                if (!relsXml.includes('header1.xml')) {
+                    const headerRelation = `<Relationship Id="rId999" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>`;
+                    relsXml = relsXml.replace('</Relationships>', `${headerRelation}</Relationships>`);
+                    zip.file('word/_rels/document.xml.rels', relsXml);
+                }
+
+                // 在文档中引用页眉
+                const sectPrRegex = /<w:sectPr[^>]*>[\s\S]*?<\/w:sectPr>/;
+                const headerReference = `<w:headerReference w:type="default" r:id="rId999"/>`;
+                
+                if (documentXml.match(sectPrRegex)) {
+                    // 如果存在 sectPr，在其中添加页眉引用
+                    documentXml = documentXml.replace(sectPrRegex, (match) => {
+                        if (!match.includes('headerReference')) {
+                            return match.replace('</w:sectPr>', `${headerReference}</w:sectPr>`);
+                        }
+                        return match;
+                    });
+                } else {
+                    // 如果不存在 sectPr，创建一个新的
+                    documentXml = documentXml.replace('</w:body>', 
+                        `<w:sectPr>${headerReference}</w:sectPr></w:body>`);
+                }
+
+                // 更新文档内容
+                zip.file('word/document.xml', documentXml);
+
+                // 更新 [Content_Types].xml
+                let contentTypesXml = zip.files['[Content_Types].xml'].asText();
+                if (!contentTypesXml.includes('header+xml')) {
+                    contentTypesXml = contentTypesXml.replace('</Types>', 
+                        `<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/></Types>`);
+                    zip.file('[Content_Types].xml', contentTypesXml);
+                }
+
+                // 生成新文档
+                const output = zip.generate({
+                    type: "blob",
+                    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                });
+
+                return output;
+            } catch (error) {
+                console.error('处理文件时出错:', error);
+                throw new Error('处理文件时出错: ' + (error.message || '未知错误'));
+            }
+        }
+
+        // 修改下载函数
+        async function downloadFiles() {
+            try {
+                window.processedFiles.forEach(file => {
+                    saveAs(file.content, `watermarked_${file.name}`);
+                });
+            } catch (error) {
+                alert('下载失败: ' + error.message);
+            }
+        }
+
+        // 修改处理函数
+        async function processWatermark() {
+            const processButton = document.getElementById('processButton');
+            const downloadButton = document.getElementById('downloadButton');
+            const progressBar = document.querySelector('.progress-bar');
+            const progress = document.querySelector('.progress');
+            const progressText = document.querySelector('.progress-text');
+
+            processButton.disabled = true;
+            progressBar.style.display = 'block';
+
+            try {
+                let processedFiles = [];
+
+                for (let i = 0; i < fileList.length; i++) {
+                    const percentage = ((i + 1) / fileList.length) * 100;
+                    progress.style.width = percentage + '%';
+                    progressText.textContent = `正在处理: ${fileList[i].name} (${Math.round(percentage)}%)`;
+                    
+                    try {
+                        const processedContent = await processFile(fileList[i].file);
+                        processedFiles.push({
+                            name: fileList[i].name,
+                            content: processedContent
+                        });
+                    } catch (error) {
+                        console.error(`处理文件 ${fileList[i].name} 时出错:`, error);
+                        throw new Error(`处理文件 ${fileList[i].name} 时出错: ${error.message}`);
+                    }
+                }
+
+                progressText.textContent = '处理完成！';
+                downloadButton.style.display = 'inline-block';
+                window.processedFiles = processedFiles;
+            } catch (error) {
+                progressText.textContent = '处理失败: ' + (error.message || '未知错误');
+                console.error('处理失败:', error);
+            } finally {
+                processButton.disabled = false;
+            }
+        }
+
+        // 添加水印文本变化监听
+        document.getElementById('watermarkText').addEventListener('input', function() {
+            const processButton = document.getElementById('processButton');
+            processButton.disabled = this.value.trim() === '' || fileList.length === 0;
+        });
+
+        // 添加事件监听器
+        document.getElementById('watermarkText').addEventListener('input', checkProcessingAvailable);
+        document.getElementById('watermarkImage').addEventListener('change', checkProcessingAvailable);
+        document.getElementsByName('watermarkType').forEach(radio => {
+            radio.addEventListener('change', checkProcessingAvailable);
+        });
+
+        // 在文件列表更新时也检查处理按钮状态
+        const originalUpdateFileList = updateFileList;
+        updateFileList = function() {
+            originalUpdateFileList();
+            checkProcessingAvailable();
+        };
+
+        // 添加字体大小变化监听
+        document.getElementById('fontSize').addEventListener('input', function() {
+            if (this.value < 1) this.value = 1;
+            if (this.value > 100) this.value = 100;
+        });
+
+        // 添加颜色变化监听
+        document.getElementById('fontColor').addEventListener('input', function() {
+            // 更新颜色预览
+            this.style.backgroundColor = this.value;
+        });
+
+        function createWatermark(text, fontFamily, fontSize, color, isTransparent, layout) {
+            const transparency = isTransparent ? 0.5 : 0;
+            const rotation = layout === 'diagonal' ? 3150000 : 0; // 角度以 60000 为单位表示，例如 3150000 表示 52.5 度
+
+            // 转换颜色为 RGB 十进制格式
+            const colorRGB = color.replace('#', '');
+
+            // 水的 XML 片段
+            const watermark =
+                `<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+                        xmlns:v="urn:schemas-microsoft-com:vml"
+                        xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
+                        xmlns:w10="urn:schemas-microsoft-com:office:word"
+                        xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+                        xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+                        xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+                        xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                    <w:p>
+                        <w:r>
+                            <w:pict>
+                                <v:shape id="Watermark" o:spid="_x0000_s1025" type="#_x0000_t136"
+                                    style="position:absolute; width:500pt; height:500pt; rotation:${rotation};"
+                                    fillcolor="${color}" o:opacity="${(1 - transparency) * 100}%"
+                                    stroked="f">
+                                    <v:textpath style="font-family:'${fontFamily}'; font-size:${fontSize}pt"
+                                        string="${text}"/>
+                                </v:shape>
+                            </w:pict>
+                        </w:r>
+                    </w:p>
+                </w:hdr>`;
+            return watermark;
+        }
+
+        function addWatermarkToDocument(doc, watermarkXml) {
+            const headerXml = watermarkXml;
+            doc.zip.file('word/header1.xml', headerXml);
+
+            // 更新 relationships
+            const relsPath = 'word/_rels/document.xml.rels';
+            const relsXml = doc.zip.file(relsPath).asText();
+            const newRelsXml = relsXml.replace('</Relationships>', `
+                <Relationship Id="rId999" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header"
+                    Target="header1.xml"/>
+            </Relationships>`);
+            doc.zip.file(relsPath, newRelsXml);
+
+            // 在 sectPr 中引用新的页眉
+            const docXml = doc.getFullText();
+            const newDocXml = docXml.replace('</w:sectPr>', `
+                <w:headerReference w:type="default" r:id="rId999"/>
+            </w:sectPr>`);
+            doc.setFullText(newDocXml);
+        }
+    </script>
+</body>
+</html> 

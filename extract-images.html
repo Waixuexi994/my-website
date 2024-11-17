@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>提取文档中的图片</title>
+    <!-- 引入必要的库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        /* 全局样式 */
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .back-button {
+            padding: 8px 15px;
+            background-color: #34495e;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background-color: #2c3e50;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .file-list {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .file-list th, .file-list td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .file-list th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .file-list tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .process-btn {
+            background-color: #2ecc71;
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .process-btn:hover {
+            background-color: #27ae60;
+        }
+
+        .process-btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .download-btn {
+            background-color: #3498db;
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            display: none;
+        }
+
+        .download-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: #2ecc71;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .no-files-message {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* 按钮样式 */
+        .top-actions button {
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .add-file-btn {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .add-file-btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .add-folder-btn {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .add-folder-btn:hover {
+            background-color: #27ae60;
+            transform: translateY(-2px);
+        }
+
+        .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        /* 添加图标 */
+        .btn-icon {
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 页头 -->
+    <div class="header">
+        <a href="aa.html" class="back-button">
+            ← 返回主页
+        </a>
+        <div class="top-actions">
+            <button onclick="document.getElementById('fileInput').click()" class="add-file-btn">
+                <span class="btn-icon">📄</span>添加文件
+            </button>
+            <input type="file" id="fileInput" multiple accept=".doc,.docx,.xls,.xlsx,.ppt,.pptx,.pdf" style="display: none" onchange="handleFileSelect(event)">
+            
+            <button onclick="document.getElementById('folderInput').click()" class="add-folder-btn">
+                <span class="btn-icon">📁</span>从文件夹导入
+            </button>
+            <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none" onchange="handleFileSelect(event)">
+            
+            <button id="clearListBtn" onclick="clearList()" class="clear-btn" style="display: none">
+                <span class="btn-icon">🗑️</span>清空列表
+            </button>
+        </div>
+    </div>
+
+    <!-- 文件列表 -->
+    <div class="container">
+        <table class="file-list">
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>名称</th>
+                    <th>路径</th>
+                    <th>扩展名</th>
+                    <th>创建时间</th>
+                    <th>修改时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="fileListBody">
+                <tr>
+                    <td colspan="7" class="no-files-message">暂无文件，请添加文件...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="action-buttons">
+        <button id="processButton" onclick="processFiles()" class="process-btn" disabled>提取图片</button>
+        <button id="downloadButton" onclick="downloadFiles()" class="download-btn">下载图片</button>
+    </div>
+
+    <!-- 进度条和提示 -->
+    <div class="progress-bar">
+        <div class="progress"></div>
+    </div>
+    <div class="progress-text"></div>
+
+    <!-- 脚本 -->
+    <script>
+        let fileList = [];
+        let extractedImages = [];
+
+        // 文件选择处理
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            const supportedExtensions = ['.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.pdf'];
+
+            for (let file of files) {
+                const extension = '.' + file.name.split('.').pop().toLowerCase();
+                if (supportedExtensions.includes(extension)) {
+                    addFile(file);
+                }
+            }
+            event.target.value = '';
+            updateClearButtonVisibility();
+            checkProcessingAvailable();
+        }
+
+        function addFile(file) {
+            const fileInfo = {
+                index: fileList.length + 1,
+                name: file.name,
+                path: file.webkitRelativePath || file.name,
+                extension: file.name.split('.').pop(),
+                createTime: new Date(file.lastModified).toLocaleString(),
+                modifyTime: new Date(file.lastModified).toLocaleString(),
+                file: file
+            };
+            fileList.push(fileInfo);
+            updateFileList();
+        }
+
+        function updateFileList() {
+            const tbody = document.getElementById('fileListBody');
+            if (fileList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-files-message">暂无文件，请添加文件...</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            fileList.forEach((file, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${file.index}</td>
+                    <td>${file.name}</td>
+                    <td>${file.path}</td>
+                    <td>${file.extension}</td>
+                    <td>${file.createTime}</td>
+                    <td>${file.modifyTime}</td>
+                    <td><button onclick="removeFile(${index})" class="cancel-btn">取消</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+            checkProcessingAvailable();
+        }
+
+        function removeFile(index) {
+            fileList.splice(index, 1);
+            fileList.forEach((file, i) => file.index = i + 1);
+            updateFileList();
+            updateClearButtonVisibility();
+            checkProcessingAvailable();
+        }
+
+        function clearList() {
+            fileList = [];
+            extractedImages = [];
+            updateFileList();
+            updateClearButtonVisibility();
+            checkProcessingAvailable();
+        }
+
+        function updateClearButtonVisibility() {
+            const clearListBtn = document.getElementById('clearListBtn');
+            clearListBtn.style.display = fileList.length > 0 ? 'block' : 'none';
+        }
+
+        function checkProcessingAvailable() {
+            const processButton = document.getElementById('processButton');
+            processButton.disabled = fileList.length === 0;
+        }
+
+        async function processFiles() {
+            const processButton = document.getElementById('processButton');
+            const downloadButton = document.getElementById('downloadButton');
+            const progressBar = document.querySelector('.progress-bar');
+            const progress = document.querySelector('.progress');
+            const progressText = document.querySelector('.progress-text');
+
+            processButton.disabled = true;
+            progressBar.style.display = 'block';
+            extractedImages = [];
+
+            try {
+                for (let i = 0; i < fileList.length; i++) {
+                    const percentage = ((i + 1) / fileList.length) * 100;
+                    progress.style.width = percentage + '%';
+                    progressText.textContent = `正在处理: ${fileList[i].name} (${Math.round(percentage)}%)`;
+
+                    try {
+                        const images = await extractImagesFromFile(fileList[i]);
+                        extractedImages.push(...images);
+                    } catch (error) {
+                        console.error(`处理文件 ${fileList[i].name} 时出错:`, error);
+                        alert(`处理文件 ${fileList[i].name} 时出错: ${error.message}`);
+                    }
+                }
+
+                progressText.textContent = '处理完成！';
+                downloadButton.style.display = extractedImages.length > 0 ? 'inline-block' : 'none';
+                if (extractedImages.length === 0) {
+                    alert('未提取到任何图片');
+                }
+
+            } catch (error) {
+                progressText.textContent = '处理失败: ' + (error.message || '未知错误');
+                console.error('处理失败:', error);
+            } finally {
+                processButton.disabled = false;
+            }
+        }
+
+        async function extractImagesFromFile(fileInfo) {
+            const file = fileInfo.file;
+            const extension = fileInfo.extension.toLowerCase();
+            if (['docx', 'xlsx', 'pptx'].includes(extension)) {
+                return extractImagesFromZipFile(file, extension);
+            } else if (extension === 'pdf') {
+                return extractImagesFromPdf(file);
+            } else {
+                return [];
+            }
+        }
+
+        async function extractImagesFromZipFile(file, extension) {
+            const zip = new JSZip();
+            const arrayBuffer = await file.arrayBuffer();
+            const loadedZip = await zip.loadAsync(arrayBuffer);
+            let images = [];
+
+            // 定义可能包含图片的��件夹路径
+            const mediaPaths = {
+                'docx': ['word/media/', 'word/embeddings/'],
+                'xlsx': ['xl/media/', 'xl/embeddings/'],
+                'pptx': ['ppt/media/', 'ppt/embeddings/']
+            };
+
+            // 获取当前文件类型的媒体文件夹路径
+            const paths = mediaPaths[extension];
+
+            // 遍历所有可能的路径
+            for (let mediaPath of paths) {
+                const mediaFolder = loadedZip.folder(mediaPath);
+                if (mediaFolder) {
+                    // 获取该文件夹下的所有文件
+                    const files = mediaFolder.files;
+                    for (let path in files) {
+                        // 检查是否是图片文件
+                        if (isImageFile(path)) {
+                            try {
+                                const blob = await loadedZip.file(path).async('blob');
+                                images.push({
+                                    fileName: `${file.name}_${path.split('/').pop()}`,
+                                    blob: blob
+                                });
+                            } catch (error) {
+                                console.warn(`提取图片失败: ${path}`, error);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 检查是否还有其他位置的图片（如嵌入的图片）
+            loadedZip.forEach(async (relativePath, zipEntry) => {
+                if (isImageFile(relativePath) && !images.some(img => img.fileName.includes(relativePath))) {
+                    try {
+                        const blob = await zipEntry.async('blob');
+                        images.push({
+                            fileName: `${file.name}_${relativePath.split('/').pop()}`,
+                            blob: blob
+                        });
+                    } catch (error) {
+                        console.warn(`提取图片失败: ${relativePath}`, error);
+                    }
+                }
+            });
+
+            return images;
+        }
+
+        // 添加判断是否为图片文件的函数
+        function isImageFile(filename) {
+            const imageExtensions = [
+                '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.webp',
+                '.svg', '.ico', '.emf', '.wmf', '.eps', '.raw', '.cr2',
+                '.nef', '.orf', '.sr2', '.psd'
+            ];
+            const lowerFilename = filename.toLowerCase();
+            return imageExtensions.some(ext => lowerFilename.endsWith(ext));
+        }
+
+        async function extractImagesFromPdf(file) {
+            return new Promise((resolve, reject) => {
+                const fileReader = new FileReader();
+                fileReader.onload = async function() {
+                    try {
+                        const typedArray = new Uint8Array(this.result);
+                        const pdf = await pdfjsLib.getDocument({data: typedArray}).promise;
+                        let images = [];
+
+                        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                            const page = await pdf.getPage(pageNum);
+                            const operatorList = await page.getOperatorList();
+                            const commonObjs = page.commonObjs;
+                            const imageObjs = new Set();
+
+                            // 收集所有图片对象
+                            for (let i = 0; i < operatorList.fnArray.length; i++) {
+                                if (operatorList.fnArray[i] === pdfjsLib.OPS.paintImageXObject ||
+                                    operatorList.fnArray[i] === pdfjsLib.OPS.paintInlineImageXObject) {
+                                    const imgName = operatorList.argsArray[i][0];
+                                    if (imgName) {
+                                        imageObjs.add(imgName);
+                                    }
+                                }
+                            }
+
+                            // 处理每个图片对象
+                            for (let imgName of imageObjs) {
+                                try {
+                                    const imgData = await page.objs.get(imgName);
+                                    if (imgData && imgData.data) {
+                                        const canvas = document.createElement('canvas');
+                                        canvas.width = imgData.width;
+                                        canvas.height = imgData.height;
+                                        const ctx = canvas.getContext('2d');
+                                        const imgDataArray = new Uint8ClampedArray(imgData.data);
+                                        const imageData = new ImageData(imgDataArray, imgData.width, imgData.height);
+                                        ctx.putImageData(imageData, 0, 0);
+
+                                        // 转换为 blob
+                                        const blob = await new Promise(resolve => {
+                                            canvas.toBlob(resolve, 'image/png');
+                                        });
+
+                                        images.push({
+                                            fileName: `${file.name}_page${pageNum}_${imgName}.png`,
+                                            blob: blob
+                                        });
+                                    }
+                                } catch (error) {
+                                    console.warn(`提取图片失败: ${imgName}`, error);
+                                }
+                            }
+                        }
+
+                        resolve(images);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                fileReader.onerror = reject;
+                fileReader.readAsArrayBuffer(file);
+            });
+        }
+
+        function downloadFiles() {
+            if (extractedImages.length === 0) {
+                alert('没有可下载的图片');
+                return;
+            }
+
+            const zip = new JSZip();
+            extractedImages.forEach(image => {
+                zip.file(image.fileName, image.blob);
+            });
+
+            zip.generateAsync({ type: 'blob' }).then(function(content) {
+                saveAs(content, 'extracted_images.zip');
+            });
+        }
+    </script>
+</body>
+</html> 

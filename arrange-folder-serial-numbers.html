@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>编排文件夹序号</title>
+    <!-- 引入必要的库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- 引入 Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* 全局样式，与之前页面一致 */
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        /* 页头样式 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .back-button {
+            padding: 10px 20px;
+            background-color: #34495e;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+        }
+
+        .back-button:hover {
+            background-color: #2c3e50;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .action-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .action-btn i {
+            font-size: 18px;
+        }
+
+        .add-folder-btn {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .add-folder-btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        /* 容器样式 */
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .container h2 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+
+        /* 文件列表样式 */
+        .file-list {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .file-list th,
+        .file-list td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .file-list th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .file-list tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .no-files-message {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* 设置组样式 */
+        .setting-group {
+            margin-bottom: 20px;
+        }
+
+        .setting-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .setting-group input[type="text"],
+        .setting-group input[type="number"],
+        .setting-group select {
+            width: 300px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .setting-group input:focus,
+        .setting-group select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52,152,219,0.2);
+        }
+
+        .radio-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        /* 操作按钮样式 */
+        .action-buttons {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .process-btn {
+            padding: 12px 25px;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .process-btn:hover {
+            background-color: #27ae60;
+            transform: translateY(-2px);
+        }
+
+        .process-btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 进度条样式 */
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: #2ecc71;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* 红色提示文字样式 */
+        .notice {
+            color: #e74c3c;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #fdeaea;
+            border-radius: 8px;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <!-- 页头 -->
+    <div class="header">
+        <a href="aa.html" class="back-button">
+            <i class="fas fa-arrow-left"></i> 返回主页
+        </a>
+        <div class="top-actions">
+            <button onclick="document.getElementById('folderInput').click()" class="action-btn add-folder-btn">
+                <i class="fas fa-folder-plus"></i> 添加文件夹
+            </button>
+            <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none" onchange="handleFolderSelect(event)">
+
+            <button id="clearListBtn" onclick="clearList()" class="action-btn clear-btn" style="display: none;">
+                <i class="fas fa-trash-alt"></i> 清空列表
+            </button>
+        </div>
+    </div>
+
+    <!-- 文件夹列表 -->
+    <div class="container">
+        <!-- 红色提示 -->
+        <div class="notice">
+            无法直接在浏览器直接进行修改文件夹名称。此功能将在后续转为本地应用后修复，敬请期待。
+        </div>
+
+        <!-- 文件列表 -->
+        <table class="file-list">
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>名称</th>
+                    <th>路径</th>
+                    <th>扩展名</th>
+                    <th>创建时间</th>
+                    <th>修改时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="folderListBody">
+                <tr>
+                    <td colspan="7" class="no-files-message">暂无文件夹，请添加...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 序号设置 -->
+    <div class="container">
+        <h2>序号设置</h2>
+        <div class="setting-group">
+            <label>请选择序号类型：</label>
+            <div class="radio-group">
+                <label><input type="radio" name="serialType" value="number" checked> 数字序号</label>
+                <label><input type="radio" name="serialType" value="datetime"> 日期时间序号</label>
+                <label><input type="radio" name="serialType" value="random"> 随机序号</label>
+            </div>
+        </div>
+
+        <!-- 数字序号设置 -->
+        <div id="numberSettings">
+            <div class="setting-group">
+                <label>序号规则：</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <span>从</span>
+                    <input type="number" id="startNumber" value="1" min="0">
+                    <span>开始编号，每次加</span>
+                    <input type="number" id="incrementNumber" value="1" min="1">
+                </div>
+                <div style="margin-top: 10px;">
+                    <label>保留位数：</label>
+                    <input type="number" id="numberDigits" value="3" min="1">
+                    <span>（不足位数前面补0）</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 日期时间序号设置 -->
+        <div id="datetimeSettings" class="hidden">
+            <div class="setting-group">
+                <label>序号规则：</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <span>从</span>
+                    <input type="datetime-local" id="startDatetime">
+                    <span>开始编号，每次加</span>
+                    <input type="number" id="datetimeIncrement" value="1">
+                    <select id="datetimeUnit">
+                        <option value="seconds">秒</option>
+                        <option value="minutes">分</option>
+                        <option value="hours">时</option>
+                        <option value="days">天</option>
+                        <option value="months">月</option>
+                        <option value="years">年</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- 随机序号设置 -->
+        <div id="randomSettings" class="hidden">
+            <div class="setting-group">
+                <label>序号规则：</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="randomType" value="numbers" checked> 纯数字</label>
+                    <label><input type="radio" name="randomType" value="letters"> 纯字母</label>
+                    <label><input type="radio" name="randomType" value="alphanumeric"> 数字与字母混合</label>
+                </div>
+                <div style="margin-top: 10px;">
+                    <label>序号长度：</label>
+                    <input type="number" id="randomLength" value="6" min="1">
+                </div>
+            </div>
+        </div>
+
+        <!-- 通用设置 -->
+        <div class="setting-group">
+            <label>序号位置：</label>
+            <div class="radio-group">
+                <label><input type="radio" name="position" value="overwrite" checked> 覆盖整个文件名</label>
+                <label><input type="radio" name="position" value="prefix"> 在文件名前面</label>
+                <label><input type="radio" name="position" value="suffix"> 在文件名后面</label>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <label>序号前缀：</label>
+            <input type="text" id="serialPrefix" placeholder="可选填">
+        </div>
+
+        <div class="setting-group">
+            <label>序号后缀：</label>
+            <input type="text" id="serialSuffix" placeholder="可选填">
+        </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="action-buttons">
+        <button id="processButton" class="process-btn" disabled>开始修改文件夹名</button>
+    </div>
+
+    <!-- 进度条和提示 -->
+    <div class="progress-bar">
+        <div class="progress"></div>
+    </div>
+    <div class="progress-text"></div>
+
+    <!-- 脚本 -->
+    <script>
+        let folderList = [];
+
+        function handleFolderSelect(event) {
+            const files = event.target.files;
+            const folders = new Set();
+
+            for (let file of files) {
+                const pathParts = file.webkitRelativePath.split('/');
+                if (pathParts.length > 1) {
+                    const folderPath = pathParts.slice(0, -1).join('/');
+                    folders.add(folderPath);
+                }
+            }
+
+            folders.forEach(folderPath => {
+                addFolder(folderPath);
+            });
+
+            event.target.value = '';
+            updateClearButtonVisibility();
+            checkProcessAvailable();
+        }
+
+        function addFolder(folderPath) {
+            const folderInfo = {
+                index: folderList.length + 1,
+                name: folderPath.split('/').pop(),
+                path: folderPath,
+                extension: '',
+                createTime: '',
+                modifyTime: '',
+                folderPath: folderPath
+            };
+            folderList.push(folderInfo);
+            updateFolderList();
+        }
+
+        function updateFolderList() {
+            const tbody = document.getElementById('folderListBody');
+            if (!tbody) {
+                console.error('找不到文件夹列表元素');
+                return;
+            }
+
+            if (folderList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-files-message">暂无文件夹，请添加...</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            folderList.forEach((folder, index) => {
+                const row = document.createElement('tr');
+                const cells = [
+                    folder.index,
+                    folder.name,
+                    folder.path,
+                    folder.extension,
+                    folder.createTime || 'N/A',
+                    folder.modifyTime || 'N/A',
+                    `<button onclick="removeFolder(${index})" class="cancel-btn">取消</button>`
+                ];
+
+                cells.forEach(cellContent => {
+                    const td = document.createElement('td');
+                    if (typeof cellContent === 'string' && cellContent.includes('<button')) {
+                        td.innerHTML = cellContent;
+                    } else {
+                        td.textContent = cellContent;
+                    }
+                    row.appendChild(td);
+                });
+
+                tbody.appendChild(row);
+            });
+            checkProcessAvailable();
+        }
+
+        function removeFolder(index) {
+            folderList.splice(index, 1);
+            folderList.forEach((folder, i) => folder.index = i + 1);
+            updateFolderList();
+            updateClearButtonVisibility();
+            checkProcessAvailable();
+        }
+
+        function clearList() {
+            folderList = [];
+            updateFolderList();
+            updateClearButtonVisibility();
+            checkProcessAvailable();
+        }
+
+        function updateClearButtonVisibility() {
+            const clearListBtn = document.getElementById('clearListBtn');
+            if (clearListBtn) {
+                clearListBtn.style.display = folderList.length > 0 ? 'block' : 'none';
+            }
+        }
+
+        // 更新按钮状态
+        function checkProcessAvailable() {
+            const processButton = document.getElementById('processButton');
+            processButton.disabled = folderList.length === 0;
+        }
+
+        // 序号类型切换
+        document.getElementsByName('serialType').forEach(radio => {
+            radio.addEventListener('change', function() {
+                document.getElementById('numberSettings').classList.add('hidden');
+                document.getElementById('datetimeSettings').classList.add('hidden');
+                document.getElementById('randomSettings').classList.add('hidden');
+
+                if (this.value === 'number') {
+                    document.getElementById('numberSettings').classList.remove('hidden');
+                } else if (this.value === 'datetime') {
+                    document.getElementById('datetimeSettings').classList.remove('hidden');
+                } else if (this.value === 'random') {
+                    document.getElementById('randomSettings').classList.remove('hidden');
+                }
+            });
+        });
+
+        // 注意：浏览器安全限制，无法直接修改文件夹名称
+        // 此处仅作展示，实际功能将在本地应用中实现
+
+        // 初始化
+        updateClearButtonVisibility();
+        checkProcessAvailable();
+    </script>
+</body>
+</html> 

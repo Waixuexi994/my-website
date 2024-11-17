@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Word优化与压缩</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .back-button {
+            padding: 8px 15px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .back-button:hover {
+            background-color: #34495e;
+        }
+
+        .page-title {
+            font-size: 18px;
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-button {
+            padding: 8px 15px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .action-button:hover {
+            background-color: #34495e;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .file-list {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .file-item {
+            display: grid;
+            grid-template-columns: 50px 2fr 3fr 1fr 2fr 2fr 80px;
+            gap: 10px;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            align-items: center;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-header {
+            font-weight: bold;
+            background-color: #f8f9fa;
+        }
+
+        .delete-button {
+            padding: 5px 10px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .delete-button:hover {
+            background-color: #c82333;
+        }
+
+        .next-step {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .settings {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .setting-item label {
+            margin-right: 10px;
+        }
+
+        .path-input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .result-list {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .slider {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+            margin-right: 10px;
+        }
+
+        .slider input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider .slider-round {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider .slider-round:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider-round {
+            background-color: #2c3e50;
+        }
+
+        input:checked + .slider-round:before {
+            transform: translateX(26px);
+        }
+
+        .note {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .download-button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+            display: inline-block;
+            text-decoration: none;
+            margin: 0 auto;
+        }
+
+        .download-button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <button class="back-button" onclick="window.location.href='aa.html'">
+                ← 返回
+            </button>
+            <h2 class="page-title">Word优化与压缩</h2>
+        </div>
+        <div class="header-right">
+            <button class="action-button" onclick="addFiles()">
+                <i>📄</i> 添加文件
+            </button>
+            <button class="action-button" onclick="importFolder()">
+                <i>📁</i> 导入文件夹
+            </button>
+            <button id="clearButton" class="action-button" style="display: none;" onclick="clearList()">
+                <i>🗑️</i> 清空列表
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="file-list">
+            <div class="file-item file-header">
+                <div>序号</div>
+                <div>名称</div>
+                <div>路径</div>
+                <div>扩展名</div>
+                <div>创建时间</div>
+                <div>修改时间</div>
+                <div>操作</div>
+            </div>
+            <div id="fileListContainer"></div>
+        </div>
+
+        <div id="step1" class="next-step">
+            <button class="action-button" onclick="showSettings()">下一步</button>
+        </div>
+
+        <div id="settings" class="settings" style="display: none;">
+            <div class="setting-item">
+                <label>图片画质 (1~100)：</label>
+                <input type="number" id="imageQuality" value="70" min="1" max="100" style="width: 60px;">
+                <span class="note">正常情况下设置为 70% 即可。设置过高时，我们也看不出来差别，设置过低则会导致图片很模糊并且充满色块。</span>
+            </div>
+            <div class="setting-item">
+                <label class="switch">
+                    <input type="checkbox" id="autoResize">
+                    <span class="slider-round"></span>
+                </label>
+                <span>自动调整原图宽高</span>
+                <p class="note">将文档内部的原始图片宽高调整为我们眼睛看到的图片宽高。</p>
+            </div>
+            <div class="setting-item">
+                <label class="switch">
+                    <input type="checkbox" id="removeStyles">
+                    <span class="slider-round"></span>
+                </label>
+                <span>删除无效的样式</span>
+            </div>
+            <div class="next-step">
+                <button class="action-button" onclick="executeOptimization()">执行</button>
+            </div>
+        </div>
+
+        <div id="downloadSection" class="next-step" style="display: none;">
+            <a id="downloadButton" class="download-button" href="#" download="optimized-file.docx">下载优化后的文件</a>
+        </div>
+    </div>
+
+    <script>
+        let fileList = [];
+        let currentStep = 1;
+
+        // 添加文件
+        function addFiles() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.multiple = true;
+            input.onchange = handleFiles;
+            input.click();
+        }
+
+        // 导入文件夹
+        function importFolder() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.webkitdirectory = true;
+            input.onchange = handleFiles;
+            input.click();
+        }
+
+        // 处理文件
+        function handleFiles(event) {
+            const files = Array.from(event.target.files);
+            files.forEach((file) => {
+                const fileInfo = {
+                    id: fileList.length + 1,
+                    name: file.name,
+                    path: file.webkitRelativePath || file.name,
+                    extension: file.name.split('.').pop().toLowerCase(),
+                    createTime: new Date(file.lastModified).toLocaleString(),
+                    modifyTime: new Date(file.lastModified).toLocaleString()
+                };
+                fileList.push(fileInfo);
+            });
+            // 重新排序所有文件的序号
+            fileList = fileList.map((file, index) => ({
+                ...file,
+                id: index + 1
+            }));
+            updateFileList();
+            document.getElementById('clearButton').style.display = 'block';
+        }
+
+        // 更新文件列表显示
+        function updateFileList() {
+            const container = document.getElementById('fileListContainer');
+            container.innerHTML = fileList.map(file => `
+                <div class="file-item">
+                    <div>${file.id}</div>
+                    <div>${file.name}</div>
+                    <div>${file.path}</div>
+                    <div>${file.extension}</div>
+                    <div>${file.createTime}</div>
+                    <div>${file.modifyTime}</div>
+                    <div>
+                        <button class="delete-button" onclick="deleteFile(${file.id})">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 删除单个文件
+        function deleteFile(id) {
+            fileList = fileList.filter(file => file.id !== id);
+            // 重新排序剩余文件的序号
+            fileList = fileList.map((file, index) => ({
+                ...file,
+                id: index + 1
+            }));
+            updateFileList();
+            if (fileList.length === 0) {
+                document.getElementById('clearButton').style.display = 'none';
+            }
+        }
+
+        // 清空列表
+        function clearList() {
+            fileList = [];
+            updateFileList();
+            document.getElementById('clearButton').style.display = 'none';
+        }
+
+        // 显示设置
+        function showSettings() {
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('settings').style.display = 'block';
+            currentStep = 2;
+        }
+
+        // 执行优化
+        function executeOptimization() {
+            const imageQuality = document.getElementById('imageQuality').value;
+            const autoResize = document.getElementById('autoResize').checked;
+            const removeStyles = document.getElementById('removeStyles').checked;
+
+            // 模拟生成优化后的文件内容
+            let content = "原始文件内容"; // 保留原始内容
+            content += `\n图片画质设置为：${imageQuality}%`;
+            if (autoResize) {
+                content += "\n自动调整原图宽高";
+            }
+            if (removeStyles) {
+                content += "\n删除无效的样式";
+            }
+
+            // 创建 Blob 对象
+            const blob = new Blob([content], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+            const url = URL.createObjectURL(blob);
+
+            // 更新下载按钮
+            const downloadButton = document.getElementById('downloadButton');
+            downloadButton.href = url;
+            downloadButton.style.display = 'inline-block';
+
+            // 显示下载按钮
+            document.getElementById('downloadSection').style.display = 'block';
+        }
+    </script>
+</body>
+</html> 

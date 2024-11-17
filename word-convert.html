@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Word 转换为其它格式</title>
+    <!-- 引入必要的库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.12/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- 引入 Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .action-btn {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .action-btn:hover {
+            background-color: #2980b9;
+        }
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .file-list {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .file-list th, .file-list td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+            font-size: 14px;
+        }
+        .file-list th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        .file-list tr:hover {
+            background-color: #f8f9fa;
+        }
+        .no-files-message {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+        .process-btn {
+            padding: 12px 25px;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .process-btn:hover {
+            background-color: #27ae60;
+            transform: translateY(-2px);
+        }
+        .process-btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+            display: none;
+        }
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: #2ecc71;
+            transition: width 0.3s ease;
+        }
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+        .hidden {
+            display: none;
+        }
+        /* 回到主页按钮样式 */
+        .back-to-home {
+            padding: 10px 20px;
+            background-color: #34495e;
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .back-to-home:hover {
+            background-color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="aa.html" class="back-to-home">
+            <i class="fas fa-arrow-left"></i> 回到主页
+        </a>
+        <div class="top-actions">
+            <button onclick="document.getElementById('fileInput').click()" class="action-btn">
+                <i class="fas fa-file-upload"></i> 添加文件
+            </button>
+            <input type="file" id="fileInput" multiple accept=".doc,.docx" style="display: none;" onchange="handleFileSelect(event)">
+            <button onclick="document.getElementById('folderInput').click()" class="action-btn">
+                <i class="fas fa-folder-plus"></i> 从文件夹导入
+            </button>
+            <input type="file" id="folderInput" webkitdirectory directory multiple accept=".doc,.docx" style="display: none;" onchange="handleFileSelect(event)">
+            <button id="clearListBtn" onclick="clearList()" class="action-btn" style="display: none;">
+                <i class="fas fa-trash-alt"></i> 清空列表
+            </button>
+        </div>
+    </div>
+    <div class="container">
+        <table class="file-list">
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>名称</th>
+                    <th>路径</th>
+                    <th>扩展名</th>
+                    <th>创建时间</th>
+                    <th>修改时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="fileListBody">
+                <tr>
+                    <td colspan="7" class="no-files-message">暂无文件，请添加文件...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="container">
+        <h2>转换后的格式类型</h2>
+        <div>
+            <input type="radio" id="toCommon" name="convertType" value="common" checked onchange="toggleConversionOptions()">
+            <label for="toCommon">转换为常见的格式</label>
+        </div>
+        <div>
+            <input type="radio" id="toImage" name="convertType" value="image" onchange="toggleConversionOptions()">
+            <label for="toImage">转换为图片</label>
+        </div>
+        <div id="commonFormats" class="setting-group">
+            <label>请选择转换后的格式：</label>
+            <div class="checkbox-group">
+                <label><input type="checkbox" name="commonFormat" value="doc"> doc</label>
+                <label><input type="checkbox" name="commonFormat" value="docx"> docx</label>
+                <label><input type="checkbox" name="commonFormat" value="docm"> docm</label>
+                <label><input type="checkbox" name="commonFormat" value="dot"> dot</label>
+                <label><input type="checkbox" name="commonFormat" value="dotx"> dotx</label>
+                <label><input type="checkbox" name="commonFormat" value="dotm"> dotm</label>
+                <label><input type="checkbox" name="commonFormat" value="pdf"> pdf</label>
+                <label><input type="checkbox" name="commonFormat" value="xps"> xps</label>
+                <label><input type="checkbox" name="commonFormat" value="svg"> svg</label>
+                <label><input type="checkbox" name="commonFormat" value="html"> html</label>
+                <label><input type="checkbox" name="commonFormat" value="epub"> epub</label>
+                <label><input type="checkbox" name="commonFormat" value="txt"> txt</label>
+                <label><input type="checkbox" name="commonFormat" value="md"> md</label>
+                <label><input type="checkbox" name="commonFormat" value="rtf"> rtf</label>
+                <label><input type="checkbox" name="commonFormat" value="xlsx"> xlsx</label>
+            </div>
+        </div>
+        <div id="imageFormats" class="setting-group hidden">
+            <label>请选择转换后的图片格式：</label>
+            <div class="radio-group">
+                <label><input type="radio" name="imageFormat" value="jpg" checked> jpg</label>
+                <label><input type="radio" name="imageFormat" value="png"> png</label>
+                <label><input type="radio" name="imageFormat" value="bmp"> bmp</label>
+                <label><input type="radio" name="imageFormat" value="tiff"> tiff</label>
+            </div>
+            <div class="setting-group">
+                <label>图片分辨率 (PPI)：</label>
+                <input type="number" id="ppi" value="300" min="72" max="600">
+                <p class="option-desc">
+                    图片分辨率（PPI）是指物理显示屏的每英寸显示图片的像素点数量。PPI 数值越高，表示显示屏显示图片的像素密度越高。用于网页浏览的图片分辨率一般为 72 PPI 即可。
+                </p>
+            </div>
+            <div class="setting-group">
+                <label>图片处理方式：</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="imageProcess" value="single" checked> 整个文档一张图</label>
+                    <label><input type="radio" name="imageProcess" value="multiple"> 每页一张图</label>
+                </div>
+                <p class="option-desc">
+                    整个文档一张图：将文档中的每一页转成图片并按垂直方向拼接成一张长图。如果是 Tiff 格式，则以多页 Tiff 的形式保存。
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="action-buttons">
+        <button id="processButton" onclick="processFiles()" class="process-btn" disabled>开始转换</button>
+    </div>
+    <div class="progress-bar">
+        <div class="progress"></div>
+    </div>
+    <div class="progress-text"></div>
+    <script>
+        let fileList = [];
+
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            for (let file of files) {
+                if (file.name.endsWith('.doc') || file.name.endsWith('.docx')) {
+                    addFile(file);
+                }
+            }
+            event.target.value = '';
+            updateClearButtonVisibility();
+            checkProcessAvailable();
+        }
+
+        function addFile(file) {
+            const fileInfo = {
+                index: fileList.length + 1,
+                name: file.name,
+                path: file.webkitRelativePath || file.name,
+                extension: file.name.split('.').pop(),
+                createTime: new Date(file.lastModified).toLocaleString(),
+                modifyTime: new Date(file.lastModified).toLocaleString(),
+                file: file
+            };
+            fileList.push(fileInfo);
+            updateFileList();
+        }
+
+        function updateFileList() {
+            const tbody = document.getElementById('fileListBody');
+            if (!tbody) {
+                console.error('找不到文件列表元素');
+                return;
+            }
+
+            if (fileList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-files-message">暂无文件，请添加文件...</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            fileList.forEach((file, index) => {
+                const row = document.createElement('tr');
+                const cells = [
+                    file.index,
+                    file.name,
+                    file.path,
+                    file.extension,
+                    file.createTime,
+                    file.modifyTime,
+                    `<button onclick="removeFile(${index})" class="cancel-btn">取消</button>`
+                ];
+
+                cells.forEach(cellContent => {
+                    const td = document.createElement('td');
+                    if (typeof cellContent === 'string' && cellContent.includes('<button')) {
+                        td.innerHTML = cellContent;
+                    } else {
+                        td.textContent = cellContent;
+                    }
+                    row.appendChild(td);
+                });
+
+                tbody.appendChild(row);
+            });
+            checkProcessAvailable();
+        }
+
+        function removeFile(index) {
+            fileList.splice(index, 1);
+            fileList.forEach((file, i) => file.index = i + 1);
+            updateFileList();
+            updateClearButtonVisibility();
+            checkProcessAvailable();
+        }
+
+        function clearList() {
+            fileList = [];
+            updateFileList();
+            updateClearButtonVisibility();
+            checkProcessAvailable();
+        }
+
+        function updateClearButtonVisibility() {
+            const clearListBtn = document.getElementById('clearListBtn');
+            if (clearListBtn) {
+                clearListBtn.style.display = fileList.length > 0 ? 'block' : 'none';
+            }
+        }
+
+        function checkProcessAvailable() {
+            const processButton = document.getElementById('processButton');
+            processButton.disabled = fileList.length === 0;
+        }
+
+        async function processFiles() {
+            const processButton = document.getElementById('processButton');
+            processButton.disabled = true;
+            try {
+                for (let file of fileList) {
+                    const text = await convertWordToText(file.file);
+                    console.log(`转换结果: ${text}`);
+                    // 这里可以将转换后的文本显示在页面上或做其他处理
+                }
+                alert('转换完成！');
+            } catch (error) {
+                console.error('转换失败:', error);
+                alert('转换失败: ' + error.message);
+            } finally {
+                processButton.disabled = false;
+            }
+        }
+
+        async function convertWordToText(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const arrayBuffer = e.target.result;
+                    const mammoth = window.mammoth || {};
+                    if (typeof mammoth.extractRawText === 'function') {
+                        mammoth.extractRawText({arrayBuffer: arrayBuffer})
+                            .then(result => resolve(result.value))
+                            .catch(error => reject(error));
+                    } else {
+                        reject(new Error('Mammoth.js library is not loaded'));
+                    }
+                };
+                reader.onerror = () => reject(new Error('File reading failed'));
+                reader.readAsArrayBuffer(blob);
+            });
+        }
+
+        function toggleConversionOptions() {
+            const commonFormatsDiv = document.getElementById('commonFormats');
+            const imageFormatsDiv = document.getElementById('imageFormats');
+            if (document.getElementById('toCommon').checked) {
+                commonFormatsDiv.style.display = 'block';
+                imageFormatsDiv.style.display = 'none';
+            } else {
+                commonFormatsDiv.style.display = 'none';
+                imageFormatsDiv.style.display = 'block';
+            }
+        }
+
+        toggleConversionOptions();  // Call on initial load
+    </script>
+</body>
+</html> 

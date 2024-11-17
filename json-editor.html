@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>JSON编辑器</title>
+    <!-- 引入 jsoneditor 库 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.10.0/jsoneditor.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.10.0/jsoneditor.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .back-button {
+            padding: 8px 15px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .back-button:hover {
+            background-color: #34495e;
+        }
+
+        .page-title {
+            font-size: 18px;
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        .editor-container {
+            display: flex;
+            gap: 20px;
+            height: calc(100vh - 100px);
+        }
+
+        .editor-section {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .editor-title {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+
+        #jsonEditor, #treeViewer {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: auto;
+        }
+
+        .button-group {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 8px 15px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background-color: #34495e;
+        }
+
+        .error {
+            color: #dc3545;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .success {
+            color: #28a745;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="back-button" onclick="window.location.href='aa.html'">
+            ← 返回
+        </button>
+        <h2 class="page-title">JSON编辑器</h2>
+    </div>
+
+    <div class="editor-container">
+        <div class="editor-section">
+            <h3 class="editor-title">JSON编辑器</h3>
+            <div id="jsonEditor"></div>
+            <div class="button-group">
+                <button onclick="formatJSON()">格式化</button>
+                <button onclick="compactJSON()">压缩</button>
+                <button onclick="validateJSON()">验证</button>
+                <button onclick="clearEditor()">清空</button>
+            </div>
+            <div id="editorMessage"></div>
+        </div>
+
+        <div class="editor-section">
+            <h3 class="editor-title">JSON树形预览</h3>
+            <div id="treeViewer"></div>
+        </div>
+    </div>
+
+    <script>
+        // 创建编辑器实例
+        const editorOptions = {
+            mode: 'code',
+            modes: ['code', 'form', 'text', 'tree', 'view', 'preview'],
+            onChangeText: updateTreeView
+        };
+        const editor = new JSONEditor(document.getElementById('jsonEditor'), editorOptions);
+
+        // 创建树形预览实例
+        const viewerOptions = {
+            mode: 'tree',
+            modes: ['tree', 'view'],
+            onError: function(err) {
+                console.error(err);
+            }
+        };
+        const viewer = new JSONEditor(document.getElementById('treeViewer'), viewerOptions);
+
+        // 更新树形预览
+        function updateTreeView(jsonString) {
+            try {
+                const json = JSON.parse(jsonString);
+                viewer.set(json);
+                document.getElementById('editorMessage').textContent = '';
+            } catch (e) {
+                // 解析错误时不更新树形预览
+            }
+        }
+
+        // 格式化 JSON
+        function formatJSON() {
+            try {
+                const json = editor.get();
+                editor.set(json);
+                document.getElementById('editorMessage').className = 'success';
+                document.getElementById('editorMessage').textContent = '格式化成功！';
+            } catch (e) {
+                document.getElementById('editorMessage').className = 'error';
+                document.getElementById('editorMessage').textContent = '格式化失败：' + e.message;
+            }
+        }
+
+        // 压缩 JSON
+        function compactJSON() {
+            try {
+                const json = editor.get();
+                editor.setText(JSON.stringify(json));
+                document.getElementById('editorMessage').className = 'success';
+                document.getElementById('editorMessage').textContent = '压缩成功！';
+            } catch (e) {
+                document.getElementById('editorMessage').className = 'error';
+                document.getElementById('editorMessage').textContent = '压缩失败：' + e.message;
+            }
+        }
+
+        // 验证 JSON
+        function validateJSON() {
+            try {
+                editor.get();
+                document.getElementById('editorMessage').className = 'success';
+                document.getElementById('editorMessage').textContent = 'JSON格式有效！';
+            } catch (e) {
+                document.getElementById('editorMessage').className = 'error';
+                document.getElementById('editorMessage').textContent = 'JSON格式无效：' + e.message;
+            }
+        }
+
+        // 清空编辑器
+        function clearEditor() {
+            editor.set({});
+            viewer.set({});
+            document.getElementById('editorMessage').textContent = '';
+        }
+
+        // 初始化示例
+        const initialJson = {
+            "name": "JSON编辑器示例",
+            "version": "1.0",
+            "features": [
+                "格式化",
+                "压缩",
+                "验证",
+                "树形预览"
+            ],
+            "isAwesome": true
+        };
+        editor.set(initialJson);
+        viewer.set(initialJson);
+    </script>
+</body>
+</html> 

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>清空图片的元数据</title>
+    <style>
+        /* ... 其他样式保持不变 ... */
+        .info-section {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #2c3e50;
+        }
+        
+        .metadata-example {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .example-image {
+            flex: 1;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .example-image img {
+            max-width: 40%;
+            height: auto;
+            border-radius: 5px;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .example-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .example-desc {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+        }
+        
+        .file-item {
+            display: grid;
+            grid-template-columns: 50px 2fr 3fr 1fr 2fr 2fr 80px;
+            gap: 10px;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            align-items: center;
+            text-align: left;
+        }
+        
+        .file-item > div {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .file-header {
+            font-weight: bold;
+            background-color: #f8f9fa;
+            text-align: left;
+        }
+        
+        .action-button {
+            padding: 12px 25px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .action-button i {
+            font-size: 18px;
+        }
+        
+        .header-right {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .back-button {
+            padding: 10px 20px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            background-color: #34495e;
+            transform: translateX(-3px);
+        }
+
+        .back-button i {
+            font-size: 18px;
+        }
+
+        .page-title {
+            font-size: 18px;
+            color: #2c3e50;
+            margin: 0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <button class="back-button" onclick="window.location.href='aa.html'">
+                <i>←</i> 返回主页面
+            </button>
+            <h2 class="page-title">清空图片的元数据</h2>
+        </div>
+        <div class="header-right">
+            <button class="action-button" onclick="addFiles()">
+                <i>📄</i> 添加文件
+            </button>
+            <button class="action-button" onclick="importFolder()">
+                <i>📁</i> 导入文件夹
+            </button>
+            <button id="clearButton" class="action-button" style="display: none;" onclick="clearList()">
+                <i>🗑️</i> 清空列表
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- 使用说明部分 -->
+        <div class="info-section">
+            <h3>什么是图片元数据？</h3>
+            <div class="metadata-example">
+                <div class="example-image">
+                    <img src="images/metadata-before.jpg" alt="示例图片" style="max-width: 100%; height: auto;">
+                </div>
+            </div>
+        </div>
+
+        <!-- 文件列表部分 -->
+        <div class="file-list">
+            <div class="file-item file-header">
+                <div>序号</div>
+                <div>名称</div>
+                <div>路径</div>
+                <div>扩展名</div>
+                <div>创建时间</div>
+                <div>修改时间</div>
+                <div>操作</div>
+            </div>
+            <div id="fileListContainer"></div>
+        </div>
+
+        <div class="next-step">
+            <button id="processButton" class="action-button" onclick="processImages()" style="display: none;">
+                清除元数据
+            </button>
+        </div>
+
+        <div id="downloadSection" style="display: none;">
+            <h3>处理完成</h3>
+            <div id="downloadLinks"></div>
+        </div>
+    </div>
+
+    <script>
+        let fileList = [];
+
+        function addFiles() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.multiple = true;
+            input.accept = 'image/*';
+            input.onchange = handleFiles;
+            input.click();
+        }
+
+        function importFolder() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.webkitdirectory = true;
+            input.multiple = true;
+            input.accept = 'image/*';
+            input.onchange = handleFiles;
+            input.click();
+        }
+
+        function handleFiles(event) {
+            const files = Array.from(event.target.files);
+            files.forEach((file) => {
+                if (file.type.startsWith('image/')) {
+                    const fileInfo = {
+                        id: fileList.length + 1,
+                        file: file,
+                        name: file.name,
+                        path: file.webkitRelativePath || file.name,
+                        extension: file.name.split('.').pop().toLowerCase(),
+                        createTime: new Date(file.lastModified).toLocaleString(),
+                        modifyTime: new Date(file.lastModified).toLocaleString()
+                    };
+                    fileList.push(fileInfo);
+                }
+            });
+            updateFileList();
+            document.getElementById('clearButton').style.display = 'block';
+            document.getElementById('processButton').style.display = 'block';
+        }
+
+        function updateFileList() {
+            const container = document.getElementById('fileListContainer');
+            container.innerHTML = fileList.map(file => `
+                <div class="file-item">
+                    <div>${file.id}</div>
+                    <div>${file.name}</div>
+                    <div>${file.path}</div>
+                    <div>${file.extension}</div>
+                    <div>${file.createTime}</div>
+                    <div>${file.modifyTime}</div>
+                    <div>
+                        <button class="delete-button" onclick="deleteFile(${file.id})">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function deleteFile(id) {
+            fileList = fileList.filter(file => file.id !== id);
+            fileList = fileList.map((file, index) => ({ ...file, id: index + 1 }));
+            updateFileList();
+            if (fileList.length === 0) {
+                document.getElementById('clearButton').style.display = 'none';
+                document.getElementById('processButton').style.display = 'none';
+            }
+        }
+
+        function clearList() {
+            fileList = [];
+            updateFileList();
+            document.getElementById('clearButton').style.display = 'none';
+            document.getElementById('processButton').style.display = 'none';
+        }
+
+        async function processImages() {
+            const downloadLinks = document.getElementById('downloadLinks');
+            downloadLinks.innerHTML = '';
+
+            for (const fileInfo of fileList) {
+                try {
+                    // 创建一个新的 canvas 来清除元数据
+                    const img = new Image();
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    // 加载图片
+                    await new Promise((resolve, reject) => {
+                        img.onload = resolve;
+                        img.onerror = reject;
+                        img.src = URL.createObjectURL(fileInfo.file);
+                    });
+
+                    // 设置 canvas 尺寸
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+
+                    // 绘制图片
+                    ctx.drawImage(img, 0, 0);
+
+                    // 导出为没有元数据的新图片
+                    const blob = await new Promise(resolve => {
+                        canvas.toBlob(resolve, 'image/jpeg', 1.0);
+                    });
+
+                    // 创建下载链接
+                    const url = URL.createObjectURL(blob);
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = url;
+                    downloadLink.download = `cleaned_${fileInfo.name}`;
+                    downloadLink.textContent = `下载 ${fileInfo.name}`;
+                    downloadLink.className = 'download-button';
+                    downloadLink.style.display = 'block';
+                    downloadLink.style.marginBottom = '10px';
+
+                    downloadLinks.appendChild(downloadLink);
+                } catch (error) {
+                    console.error(`处理 ${fileInfo.name} 时出错:`, error);
+                }
+            }
+
+            document.getElementById('downloadSection').style.display = 'block';
+        }
+    </script>
+</body>
+</html> 

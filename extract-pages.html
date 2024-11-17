@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>提取文档的页</title>
+    <!-- 引入必要的库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        window.jsPDF = window.jspdf.jsPDF;
+    </script>
+    <style>
+        /* 全局样式 */
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .back-button {
+            padding: 8px 15px;
+            background-color: #34495e;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background-color: #2c3e50;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .file-list {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .file-list th, .file-list td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .file-list th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .file-list tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .process-btn {
+            background-color: #2ecc71;
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .process-btn:hover {
+            background-color: #27ae60;
+        }
+
+        .process-btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .download-btn {
+            background-color: #3498db;
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            display: none;
+        }
+
+        .download-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: #2ecc71;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .no-files-message {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .instructions {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* 按钮样式 */
+        .top-actions button {
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .add-file-btn {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .add-file-btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .add-folder-btn {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .add-folder-btn:hover {
+            background-color: #27ae60;
+            transform: translateY(-2px);
+        }
+
+        .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        /* 添加图标 */
+        .btn-icon {
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 页头 -->
+    <div class="header">
+        <a href="aa.html" class="back-button">
+            ← 返回主页
+        </a>
+        <div class="top-actions">
+            <button onclick="document.getElementById('fileInput').click()" class="add-file-btn">
+                <span class="btn-icon">📄</span>添加文件
+            </button>
+            <input type="file" id="fileInput" multiple accept=".doc,.docx,.ppt,.pptx,.pdf" style="display: none" onchange="handleFileSelect(event)">
+            
+            <button onclick="document.getElementById('folderInput').click()" class="add-folder-btn">
+                <span class="btn-icon">📁</span>从文件夹导入
+            </button>
+            <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none" onchange="handleFileSelect(event)">
+            
+            <button id="clearListBtn" onclick="clearList()" class="clear-btn" style="display: none">
+                <span class="btn-icon">🗑️</span>清空列表
+            </button>
+        </div>
+    </div>
+
+    <!-- 文件列表 -->
+    <div class="container">
+        <table class="file-list">
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>名称</th>
+                    <th>路径</th>
+                    <th>扩展名</th>
+                    <th>创建时间</th>
+                    <th>修改时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="fileListBody">
+                <tr>
+                    <td colspan="7" class="no-files-message">暂无文件，请添加文件...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 提取页数设置 -->
+    <div class="container">
+        <div class="instructions">
+            <div style="color: #e74c3c; margin-bottom: 15px; padding: 10px; background-color: #fdeaea; border-radius: 4px;">
+                注意：由于该网站目前仅用前端功能进行开发，所以暂不支持Word、PPT提取，仅提供PDF提取。
+            </div>
+            <h3>页面提取说明：</h3>
+            <p>我们使用区间来表示自定义范围，一个范围使用英文冒号分隔，多个范围使用英文逗号分隔。示例如下：</p>
+            <ul>
+                <li>第一页：<strong>1</strong></li>
+                <li>第二页到第五页：<strong>2:5</strong></li>
+                <li>最后一页：<strong>-1</strong></li>
+                <li>���三页：<strong>-3</strong></li>
+                <li>最后五页：<strong>-5:-1</strong></li>
+                <li>倒数第五页至倒数第二页：<strong>-5:-2</strong></li>
+                <li>第二到五页和第七到十页和最后三页：<strong>2:5,7:10,-3:-1</strong></li>
+            </ul>
+        </div>
+        <div class="setting-group">
+            <label>请输入要提取的页面范围：</label>
+            <input type="text" id="pageRangeInput" placeholder="例如：1,3:5,-2:-1" style="width: 100%; padding: 10px; font-size: 16px;" oninput="checkProcessingAvailable()">
+        </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="action-buttons">
+        <button id="processButton" onclick="processFiles()" class="process-btn" disabled>提取页面</button>
+        <button id="downloadButton" onclick="downloadFiles()" class="download-btn">下载文件</button>
+    </div>
+
+    <!-- 进度条和提示 -->
+    <div class="progress-bar">
+        <div class="progress"></div>
+    </div>
+    <div class="progress-text"></div>
+
+    <!-- 脚本 -->
+    <script>
+        let fileList = [];
+        let processedFiles = [];
+
+        // 文件选择处理
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            const supportedExtensions = ['.doc', '.docx', '.ppt', '.pptx', '.pdf'];
+
+            for (let file of files) {
+                const extension = '.' + file.name.split('.').pop().toLowerCase();
+                if (supportedExtensions.includes(extension)) {
+                    addFile(file);
+                }
+            }
+            event.target.value = '';
+            updateClearButtonVisibility();
+            checkProcessingAvailable();
+        }
+
+        function addFile(file) {
+            const fileInfo = {
+                index: fileList.length + 1,
+                name: file.name,
+                path: file.webkitRelativePath || file.name,
+                extension: file.name.split('.').pop().toLowerCase(),
+                createTime: new Date(file.lastModified).toLocaleString(),
+                modifyTime: new Date(file.lastModified).toLocaleString(),
+                file: file
+            };
+            fileList.push(fileInfo);
+            updateFileList();
+        }
+
+        function updateFileList() {
+            const tbody = document.getElementById('fileListBody');
+            if (fileList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-files-message">暂无文件，请添加文件...</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            fileList.forEach((file, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${file.index}</td>
+                    <td>${file.name}</td>
+                    <td>${file.path}</td>
+                    <td>${file.extension}</td>
+                    <td>${file.createTime}</td>
+                    <td>${file.modifyTime}</td>
+                    <td><button onclick="removeFile(${index})" class="cancel-btn">取消</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+            checkProcessingAvailable();
+        }
+
+        function removeFile(index) {
+            fileList.splice(index, 1);
+            fileList.forEach((file, i) => file.index = i + 1);
+            updateFileList();
+            updateClearButtonVisibility();
+            checkProcessingAvailable();
+        }
+
+        function clearList() {
+            fileList = [];
+            processedFiles = [];
+            updateFileList();
+            updateClearButtonVisibility();
+            checkProcessingAvailable();
+        }
+
+        function updateClearButtonVisibility() {
+            const clearListBtn = document.getElementById('clearListBtn');
+            clearListBtn.style.display = fileList.length > 0 ? 'block' : 'none';
+        }
+
+        function checkProcessingAvailable() {
+            const processButton = document.getElementById('processButton');
+            const pageRange = document.getElementById('pageRangeInput').value.trim();
+            processButton.disabled = fileList.length === 0 || !pageRange;
+        }
+
+        async function processFiles() {
+            const processButton = document.getElementById('processButton');
+            const downloadButton = document.getElementById('downloadButton');
+            const progressBar = document.querySelector('.progress-bar');
+            const progress = document.querySelector('.progress');
+            const progressText = document.querySelector('.progress-text');
+
+            processButton.disabled = true;
+            progressBar.style.display = 'block';
+            processedFiles = [];
+
+            try {
+                for (let i = 0; i < fileList.length; i++) {
+                    const percentage = ((i + 1) / fileList.length) * 100;
+                    progress.style.width = percentage + '%';
+                    progressText.textContent = `正在处理: ${fileList[i].name} (${Math.round(percentage)}%)`;
+
+                    try {
+                        const outputFile = await extractPagesFromFile(fileList[i]);
+                        processedFiles.push({
+                            fileName: `extracted_${fileList[i].name}`,
+                            content: outputFile
+                        });
+                    } catch (error) {
+                        console.error(`处理文件 ${fileList[i].name} 时出错:`, error);
+                        alert(`处理文件 ${fileList[i].name} 时出错: ${error.message}`);
+                    }
+                }
+
+                progressText.textContent = '处理完成！';
+                downloadButton.style.display = processedFiles.length > 0 ? 'inline-block' : 'none';
+                if (processedFiles.length === 0) {
+                    alert('未处理到任何文件');
+                }
+
+            } catch (error) {
+                progressText.textContent = '处理失败: ' + (error.message || '未知错误');
+                console.error('处理失败:', error);
+            } finally {
+                processButton.disabled = false;
+            }
+        }
+
+        async function extractPagesFromFile(fileInfo) {
+            const file = fileInfo.file;
+            const extension = fileInfo.extension.toLowerCase();
+            const pageRanges = parsePageRanges(document.getElementById('pageRangeInput').value.trim());
+
+            if (extension === 'pdf') {
+                return extractPagesFromPdf(file, pageRanges);
+            } else {
+                throw new Error('暂不支持该文件类型，目前仅支持PDF文件');
+            }
+        }
+
+        // 解析页面范围的函数
+        function parsePageRanges(rangeStr) {
+            // 例如，将 "1,3:5,-2:-1" 解析为 [{start:1,end:1},{start:3,end:5},{start:-2,end:-1}]
+            const ranges = rangeStr.split(',').map(part => {
+                const [startStr, endStr] = part.split(':');
+                const start = parseInt(startStr);
+                const end = endStr !== undefined ? parseInt(endStr) : start;
+                return { start, end };
+            });
+            return ranges;
+        }
+
+        // 提取 PDF 的指定页面
+        async function extractPagesFromPdf(file, pageRanges) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async function() {
+                    try {
+                        const typedArray = new Uint8Array(this.result);
+                        const loadingTask = pdfjsLib.getDocument({data: typedArray});
+                        const pdf = await loadingTask.promise;
+                        const totalPages = pdf.numPages;
+
+                        // 计算需要提取的页面
+                        const selectedPages = getSelectedPages(pageRanges, totalPages);
+                        if (selectedPages.length === 0) {
+                            throw new Error('没有找到符合条件的页面');
+                        }
+
+                        // 创建新的 PDF 文档
+                        const newPdf = new jsPDF();
+                        let isFirstPage = true;
+
+                        // 批量处理页面
+                        for (let pageNum of selectedPages) {
+                            const page = await pdf.getPage(pageNum);
+                            const viewport = page.getViewport({scale: 1.0});
+                            
+                            // 创建 canvas
+                            const canvas = document.createElement('canvas');
+                            canvas.width = viewport.width;
+                            canvas.height = viewport.height;
+                            
+                            // 渲染页面
+                            await page.render({
+                                canvasContext: canvas.getContext('2d'),
+                                viewport: viewport
+                            }).promise;
+
+                            // 添加到新 PDF
+                            if (!isFirstPage) {
+                                newPdf.addPage();
+                            }
+                            const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                            newPdf.addImage(imgData, 'JPEG', 0, 0, viewport.width / 72 * 25.4, viewport.height / 72 * 25.4);
+                            isFirstPage = false;
+
+                            // 清理内存
+                            canvas.remove();
+                        }
+
+                        // 生成新的 PDF blob
+                        const blob = new Blob([newPdf.output('arraybuffer')], { type: 'application/pdf' });
+                        resolve(blob);
+
+                    } catch (error) {
+                        reject(new Error('处理 PDF 文件时出错: ' + error.message));
+                    }
+                };
+                reader.onerror = () => reject(new Error('读取文件时出错'));
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // 计算需要提取的页面列表
+        function getSelectedPages(pageRanges, totalPages) {
+            const pagesSet = new Set();
+            for (let range of pageRanges) {
+                let start = range.start;
+                let end = range.end;
+
+                if (start < 0) start = totalPages + start + 1;
+                if (end < 0) end = totalPages + end + 1;
+
+                for (let i = start; i <= end; i++) {
+                    if (i >= 1 && i <= totalPages) {
+                        pagesSet.add(i);
+                    }
+                }
+            }
+            return Array.from(pagesSet).sort((a, b) => a - b);
+        }
+
+        // 下载处理后的文件
+        function downloadFiles() {
+            if (processedFiles.length === 0) {
+                alert('没有可下载的文件');
+                return;
+            }
+
+            try {
+                processedFiles.forEach(file => {
+                    saveAs(file.content, file.fileName);
+                });
+            } catch (error) {
+                alert('下载失败: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html> 

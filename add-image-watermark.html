@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>图片添加水印</title>
+    <!-- 引入必要的库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        /* 全局样式 */
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .back-button {
+            padding: 8px 15px;
+            background-color: #34495e;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background-color: #2c3e50;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .file-list {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .file-list th, .file-list td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .file-list th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .file-list tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .watermark-settings {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+        }
+
+        .setting-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .setting-group input[type="text"],
+        .setting-group input[type="number"],
+        .setting-group select {
+            width: 300px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .color-inputs {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .position-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .position-options label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .adjustment-inputs {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .adjustment-inputs select,
+        .adjustment-inputs input[type="number"] {
+            width: 100px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .process-btn {
+            background-color: #2ecc71;
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .process-btn:hover {
+            background-color: #27ae60;
+        }
+
+        .download-btn {
+            background-color: #3498db;
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            display: none;
+        }
+
+        .download-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: #2ecc71;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .no-files-message {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .preview-container {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .watermark-preview {
+            font-size: 36px;
+            color: #000;
+            opacity: 0.5;
+            transform: rotate(0deg);
+            display: inline-block;
+            margin-top: 20px;
+        }
+
+        /* 按钮样式 */
+        .top-actions button {
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .add-file-btn {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .add-file-btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .add-folder-btn {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .add-folder-btn:hover {
+            background-color: #27ae60;
+            transform: translateY(-2px);
+        }
+
+        .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        /* 添加图标 */
+        .btn-icon {
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 页头 -->
+    <div class="header">
+        <a href="aa.html" class="back-button">
+            ← 返回主
+        </a>
+        <div class="top-actions">
+            <button onclick="document.getElementById('fileInput').click()" class="add-file-btn">
+                <span class="btn-icon">📄</span>添加文件
+            </button>
+            <input type="file" id="fileInput" multiple accept="image/*" style="display: none" onchange="handleFileSelect(event)">
+            
+            <button onclick="document.getElementById('folderInput').click()" class="add-folder-btn">
+                <span class="btn-icon">📁</span>从文件夹导入
+            </button>
+            <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none" onchange="handleFileSelect(event)">
+            
+            <button id="clearListBtn" onclick="clearList()" class="clear-btn" style="display: none">
+                <span class="btn-icon">🗑️</span>清空列表
+            </button>
+        </div>
+    </div>
+
+    <!-- 文件列表 -->
+    <div class="container">
+        <table class="file-list">
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>名称</th>
+                    <th>路径</th>
+                    <th>扩展名</th>
+                    <th>创建时间</th>
+                    <th>改时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="fileListBody">
+                <tr>
+                    <td colspan="7" class="no-files-message">暂无文件，请添加文件...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 水印设置 -->
+    <div class="watermark-settings">
+        <div class="setting-group">
+            <label>水印类型：</label>
+            <label><input type="radio" name="watermarkType" value="text" checked> 文字</label>
+            <!-- 图片水印功能可在将来添加 -->
+        </div>
+
+        <div id="textWatermarkSettings">
+            <div class="setting-group">
+                <label>水印文字：</label>
+                <input type="text" id="watermarkText" placeholder="请输入水印文字" oninput="updatePreview()">
+            </div>
+
+            <div class="setting-group">
+                <label>字体：</label>
+                <select id="fontFamily" onchange="updatePreview()">
+                    <!-- 添加字体选项 -->
+                    <option value="宋体">宋体</option>
+                    <option value="微软雅黑">微软雅黑</option>
+                    <option value="黑体">黑体</option>
+                    <option value="楷体">楷体</option>
+                    <!-- 其他字体 -->
+                </select>
+            </div>
+
+            <div class="setting-group">
+                <label>字号：</label>
+                <input type="number" id="fontSize" min="1" max="1000" value="36" oninput="updatePreview()">
+            </div>
+
+            <div class="setting-group">
+                <label>旋转角度（度）：</label>
+                <input type="number" id="rotation" min="0" max="360" value="0" oninput="updatePreview()">
+            </div>
+
+            <div class="setting-group">
+                <label>颜色：</label>
+                <input type="color" id="fontColor" value="#000000" onchange="updatePreview()">
+            </div>
+
+            <div class="setting-group">
+                <label>水印位置：</label>
+                <span style="color: #e74c3c; font-size: 14px; margin-left: 10px;">* 必须选择一个位置，否则无法完成处理</span>
+                <div class="position-options">
+                    <label><input type="radio" name="position" value="top-left" checked> 左上角</label>
+                    <label><input type="radio" name="position" value="top-center"> 正上方</label>
+                    <label><input type="radio" name="position" value="top-right"> 右上角</label>
+                    <label><input type="radio" name="position" value="center"> 正中心</label>
+                    <label><input type="radio" name="position" value="bottom-left"> 左下角</label>
+                    <label><input type="radio" name="position" value="bottom-center"> 正下方</label>
+                    <label><input type="radio" name="position" value="bottom-right"> 右下角</label>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <label>位置微调：</label>
+                <div class="adjustment-inputs">
+                    <select id="horizontalAdjust" onchange="updatePreview()">
+                        <option value="none">左右微调</option>
+                        <option value="left">左移</option>
+                        <option value="right">右移</option>
+                    </select>
+                    <input type="number" id="horizontalPixels" min="0" value="0" placeholder="像素" oninput="updatePreview()">
+
+                    <select id="verticalAdjust" onchange="updatePreview()">
+                        <option value="none">上下微调</option>
+                        <option value="up">上移</option>
+                        <option value="down">下移</option>
+                    </select>
+                    <input type="number" id="verticalPixels" min="0" value="0" placeholder="像素" oninput="updatePreview()">
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <label>其他设置：</label>
+                <label><input type="checkbox" id="textStroke" onchange="updatePreview()"> 文字描边</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- 水印预览 -->
+    <div class="preview-container">
+        <canvas id="watermarkPreviewCanvas" width="400" height="400" style="border: 1px solid #ddd;"></canvas>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="action-buttons">
+        <button id="processButton" onclick="processFiles()" class="process-btn" disabled>添加水印</button>
+        <button id="downloadButton" onclick="downloadFiles()" class="download-btn">下载文件</button>
+    </div>
+
+    <!-- 进度条和提示 -->
+    <div class="progress-bar">
+        <div class="progress"></div>
+    </div>
+    <div class="progress-text"></div>
+
+    <!-- 脚本 -->
+    <script>
+        let fileList = [];
+
+        // 文件选择处理
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            for (let file of files) {
+                if (file.type.startsWith('image/')) {
+                    addFile(file);
+                }
+            }
+            event.target.value = '';
+            updateClearButtonVisibility();
+            checkProcessingAvailable();
+        }
+
+        function addFile(file) {
+            const fileInfo = {
+                index: fileList.length + 1,
+                name: file.name,
+                path: file.webkitRelativePath || file.name,
+                extension: file.name.split('.').pop(),
+                createTime: new Date(file.lastModified).toLocaleString(),
+                modifyTime: new Date(file.lastModified).toLocaleString(),
+                file: file
+            };
+            fileList.push(fileInfo);
+            updateFileList();
+        }
+
+        function updateFileList() {
+            const tbody = document.getElementById('fileListBody');
+            if (fileList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-files-message">暂无文件，请添加文件...</td></tr>';
+                return;
+            }
+            tbody.innerHTML = '';
+            fileList.forEach((file, index) => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${file.index}</td>
+                    <td>${file.name}</td>
+                    <td>${file.path}</td>
+                    <td>${file.extension}</td>
+                    <td>${file.createTime}</td>
+                    <td>${file.modifyTime}</td>
+                    <td><button onclick="removeFile(${index})" class="cancel-btn">取消</button></td>
+                `;
+            });
+            checkProcessingAvailable();
+        }
+
+        function removeFile(index) {
+            fileList.splice(index, 1);
+            fileList.forEach((file, i) => file.index = i + 1);
+            updateFileList();
+            updateClearButtonVisibility();
+            checkProcessingAvailable();
+        }
+
+        function clearList() {
+            fileList = [];
+            updateFileList();
+            updateClearButtonVisibility();
+            checkProcessingAvailable();
+        }
+
+        function updateClearButtonVisibility() {
+            const clearListBtn = document.getElementById('clearListBtn');
+            clearListBtn.style.display = fileList.length > 0 ? 'block' : 'none';
+        }
+
+        // 检查是否可以开始处理
+        function checkProcessingAvailable() {
+            const processButton = document.getElementById('processButton');
+            const hasFiles = fileList.length > 0;
+            const watermarkText = document.getElementById('watermarkText').value.trim();
+            processButton.disabled = !(hasFiles && watermarkText);
+        }
+
+        // 添加事件监听
+        document.getElementById('watermarkText').addEventListener('input', checkProcessingAvailable);
+
+        // 更新水印预览
+        function updatePreview() {
+            const canvas = document.getElementById('watermarkPreviewCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 绘制背景
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 获取水印设置
+            const text = document.getElementById('watermarkText').value || '水印预览';
+            const fontFamily = document.getElementById('fontFamily').value;
+            const fontSize = parseInt(document.getElementById('fontSize').value, 10);
+            const rotation = parseInt(document.getElementById('rotation').value, 10);
+            const color = document.getElementById('fontColor').value;
+            const textStroke = document.getElementById('textStroke').checked;
+
+            // 设置字体
+            ctx.font = `${fontSize}px ${fontFamily}`;
+            ctx.fillStyle = color;
+            if (textStroke) {
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 1;
+            }
+
+            // 设置位置
+            let x = canvas.width / 2;
+            let y = canvas.height / 2;
+
+            // 获取选中的位置
+            const position = document.querySelector('input[name="position"]:checked')?.value || 'center';
+            
+            // 根据位置设置对齐方式
+            switch (position) {
+                case 'top-left':
+                    x = 0;
+                    y = 0;
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'top';
+                    break;
+                case 'top-center':
+                    x = canvas.width / 2;
+                    y = 0;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'top';
+                    break;
+                case 'top-right':
+                    x = canvas.width;
+                    y = 0;
+                    ctx.textAlign = 'right';
+                    ctx.textBaseline = 'top';
+                    break;
+                case 'center':
+                    x = canvas.width / 2;
+                    y = canvas.height / 2;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    break;
+                case 'bottom-left':
+                    x = 0;
+                    y = canvas.height;
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'bottom';
+                    break;
+                case 'bottom-center':
+                    x = canvas.width / 2;
+                    y = canvas.height;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    break;
+                case 'bottom-right':
+                    x = canvas.width;
+                    y = canvas.height;
+                    ctx.textAlign = 'right';
+                    ctx.textBaseline = 'bottom';
+                    break;
+            }
+
+            // 应用位置微调
+            const horizontalAdjust = document.getElementById('horizontalAdjust').value;
+            const horizontalPixels = parseInt(document.getElementById('horizontalPixels').value, 10) || 0;
+            const verticalAdjust = document.getElementById('verticalAdjust').value;
+            const verticalPixels = parseInt(document.getElementById('verticalPixels').value, 10) || 0;
+
+            if (horizontalAdjust === 'left') {
+                x -= horizontalPixels;
+            } else if (horizontalAdjust === 'right') {
+                x += horizontalPixels;
+            }
+
+            if (verticalAdjust === 'up') {
+                y -= verticalPixels;
+            } else if (verticalAdjust === 'down') {
+                y += verticalPixels;
+            }
+
+            // 旋转画布
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate((rotation * Math.PI) / 180);
+
+            // 绘制文字
+            if (textStroke) {
+                ctx.strokeText(text, 0, 0);
+            }
+            ctx.fillText(text, 0, 0);
+
+            ctx.restore();
+        }
+
+        // 添加事件监听器，确保实时更新预览
+        document.getElementById('watermarkText').addEventListener('input', updatePreview);
+        document.getElementById('fontFamily').addEventListener('change', updatePreview);
+        document.getElementById('fontSize').addEventListener('input', updatePreview);
+        document.getElementById('rotation').addEventListener('input', updatePreview);
+        document.getElementById('fontColor').addEventListener('input', updatePreview);
+        document.getElementById('textStroke').addEventListener('change', updatePreview);
+
+        // 为位置选项添加事件监听
+        document.querySelectorAll('input[name="position"]').forEach(radio => {
+            radio.addEventListener('change', updatePreview);
+        });
+
+        // 为位置微调添加事件监听
+        document.getElementById('horizontalAdjust').addEventListener('change', updatePreview);
+        document.getElementById('horizontalPixels').addEventListener('input', updatePreview);
+        document.getElementById('verticalAdjust').addEventListener('change', updatePreview);
+        document.getElementById('verticalPixels').addEventListener('input', updatePreview);
+
+        // 初始化预览
+        updatePreview();
+
+        // 处理文件
+        async function processFiles() {
+            const processButton = document.getElementById('processButton');
+            const downloadButton = document.getElementById('downloadButton');
+            const progressBar = document.querySelector('.progress-bar');
+            const progress = document.querySelector('.progress');
+            const progressText = document.querySelector('.progress-text');
+
+            processButton.disabled = true;
+            progressBar.style.display = 'block';
+            downloadButton.style.display = 'none';
+
+            try {
+                let processedFiles = [];
+
+                for (let i = 0; i < fileList.length; i++) {
+                    const percentage = ((i + 1) / fileList.length) * 100;
+                    progress.style.width = percentage + '%';
+                    progressText.textContent = `正在处理: ${fileList[i].name} (${Math.round(percentage)}%)`;
+
+                    try {
+                        const processedContent = await addWatermarkToImage(fileList[i].file);
+                        processedFiles.push({
+                            name: fileList[i].name,
+                            content: processedContent
+                        });
+                    } catch (error) {
+                        console.error(`处理文件 ${fileList[i].name} 时出错:`, error);
+                        throw new Error(`处理文件 ${fileList[i].name} 时出错: ${error.message}`);
+                    }
+                }
+
+                progressText.textContent = '处理完成！';
+                downloadButton.style.display = 'inline-block';
+                window.processedFiles = processedFiles;
+            } catch (error) {
+                progressText.textContent = '处理失败: ' + (error.message || '未知错误');
+                console.error('处理失败:', error);
+            } finally {
+                processButton.disabled = false;
+            }
+        }
+
+        // 添加水印到图片
+        async function addWatermarkToImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+
+                        // 绘制原始图片
+                        ctx.drawImage(img, 0, 0);
+
+                        // 获取水印设置
+                        const text = document.getElementById('watermarkText').value;
+                        const fontFamily = document.getElementById('fontFamily').value;
+                        const fontSize = parseInt(document.getElementById('fontSize').value, 10);
+                        const rotation = parseInt(document.getElementById('rotation').value, 10);
+                        const color = document.getElementById('fontColor').value;
+                        const textStroke = document.getElementById('textStroke').checked;
+
+                        // 设置字体
+                        ctx.font = `${fontSize}px ${fontFamily}`;
+                        ctx.fillStyle = color;
+                        ctx.textBaseline = 'middle';
+
+                        if (textStroke) {
+                            ctx.strokeStyle = 'black';
+                            ctx.lineWidth = 1;
+                        }
+
+                        // 设置位置
+                        let x = canvas.width / 2;
+                        let y = canvas.height / 2;
+
+                        const position = document.querySelector('input[name="position"]:checked').value;
+                        switch (position) {
+                            case 'top-left':
+                                x = 0;
+                                y = 0;
+                                ctx.textAlign = 'left';
+                                ctx.textBaseline = 'top';
+                                break;
+                            case 'top-center':
+                                x = canvas.width / 2;
+                                y = 0;
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'top';
+                                break;
+                            case 'top-right':
+                                x = canvas.width;
+                                y = 0;
+                                ctx.textAlign = 'right';
+                                ctx.textBaseline = 'top';
+                                break;
+                            case 'center':
+                                x = canvas.width / 2;
+                                y = canvas.height / 2;
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                break;
+                            case 'bottom-left':
+                                x = 0;
+                                y = canvas.height;
+                                ctx.textAlign = 'left';
+                                ctx.textBaseline = 'bottom';
+                                break;
+                            case 'bottom-center':
+                                x = canvas.width / 2;
+                                y = canvas.height;
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'bottom';
+                                break;
+                            case 'bottom-right':
+                                x = canvas.width;
+                                y = canvas.height;
+                                ctx.textAlign = 'right';
+                                ctx.textBaseline = 'bottom';
+                                break;
+                        }
+
+                        // 位置微调
+                        const horizontalAdjust = document.getElementById('horizontalAdjust').value;
+                        const horizontalPixels = parseInt(document.getElementById('horizontalPixels').value, 10) || 0;
+                        const verticalAdjust = document.getElementById('verticalAdjust').value;
+                        const verticalPixels = parseInt(document.getElementById('verticalPixels').value, 10) || 0;
+
+                        if (horizontalAdjust === 'left') {
+                            x -= horizontalPixels;
+                        } else if (horizontalAdjust === 'right') {
+                            x += horizontalPixels;
+                        }
+
+                        if (verticalAdjust === 'up') {
+                            y -= verticalPixels;
+                        } else if (verticalAdjust === 'down') {
+                            y += verticalPixels;
+                        }
+
+                        // 旋转画布
+                        ctx.save();
+                        ctx.translate(x, y);
+                        ctx.rotate((rotation * Math.PI) / 180);
+
+                        // 绘制文字
+                        if (textStroke) {
+                            ctx.strokeText(text, 0, 0);
+                        }
+                        ctx.fillText(text, 0, 0);
+
+                        ctx.restore();
+
+                        // 将结果转换为 Blob
+                        canvas.toBlob(function(blob) {
+                            resolve(blob);
+                        }, file.type || 'image/png', 0.95);
+                    };
+                    img.onerror = function() {
+                        reject(new Error('加载图片失败'));
+                    };
+                    img.src = e.target.result;
+                };
+                reader.onerror = function() {
+                    reject(new Error('读取文件时出错'));
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // 下载处理后的文件
+        function downloadFiles() {
+            try {
+                window.processedFiles.forEach(file => {
+                    saveAs(file.content, `watermarked_${file.name}`);
+                });
+            } catch (error) {
+                alert('下载失败: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html> 

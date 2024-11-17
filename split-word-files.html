@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Word拆分成多个文件</title>
+    <!-- 引入必要的库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.0.6/pizzip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.27.5/build/docxtemplater.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip-utils@0.1.0/dist/jszip-utils.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <!-- 引入 Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* 与之前页面一致的样式 */
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        /* 页头样式 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .back-button {
+            padding: 10px 20px;
+            background-color: #34495e;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+        }
+
+        .back-button:hover {
+            background-color: #2c3e50;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .action-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .action-btn i {
+            font-size: 18px;
+        }
+
+        .add-file-btn {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .add-file-btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .add-folder-btn {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .add-folder-btn:hover {
+            background-color: #27ae60;
+            transform: translateY(-2px);
+        }
+
+        .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        /* 文件列表样式 */
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .file-list {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .file-list th, .file-list td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        .file-list th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .file-list tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .no-files-message {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* 拆分方式设置样式 */
+        .settings {
+            margin-top: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .settings h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+
+        .settings .option-group {
+            margin-bottom: 20px;
+        }
+
+        .settings label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .settings input[type="number"],
+        .settings select {
+            width: 200px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .settings input[type="number"]:focus,
+        .settings select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52,152,219,0.2);
+        }
+
+        /* 操作按钮样式 */
+        .action-buttons {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .process-btn {
+            padding: 12px 25px;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .process-btn:hover {
+            background-color: #27ae60;
+            transform: translateY(-2px);
+        }
+
+        .process-btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 进度条样式 */
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: #2ecc71;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* 添加选项说明文字的样式 */
+        .option-desc {
+            color: #666;
+            font-size: 14px;
+            margin: 5px 0 0 0;
+            font-style: italic;
+        }
+
+        /* 禁用状态的样式 */
+        select:disabled, input:disabled {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+    </style>
+</head>
+<body>
+    <!-- 页头 -->
+    <div class="header">
+        <a href="aa.html" class="back-button">
+            <i class="fas fa-arrow-left"></i> 返回主页
+        </a>
+        <div class="top-actions">
+            <button onclick="document.getElementById('fileInput').click()" class="action-btn add-file-btn">
+                <i class="fas fa-file-upload"></i> 添加文件
+            </button>
+            <input type="file" id="fileInput" multiple accept=".doc,.docx" style="display: none" onchange="handleFileSelect(event)">
+
+            <button onclick="document.getElementById('folderInput').click()" class="action-btn add-folder-btn">
+                <i class="fas fa-folder-plus"></i> 从文件夹导入
+            </button>
+            <input type="file" id="folderInput" webkitdirectory directory multiple accept=".doc,.docx" style="display: none" onchange="handleFileSelect(event)">
+
+            <button id="clearListBtn" onclick="clearList()" class="action-btn clear-btn" style="display: none;">
+                <i class="fas fa-trash-alt"></i> 清空列表
+            </button>
+        </div>
+    </div>
+
+    <!-- 文件列表 -->
+    <div class="container">
+        <table class="file-list">
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>名称</th>
+                    <th>路径</th>
+                    <th>扩展名</th>
+                    <th>创建时间</th>
+                    <th>修改时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="fileListBody">
+                <tr>
+                    <td colspan="7" class="no-files-message">暂无文件，请添加文件...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 拆分方式设置 -->
+    <div class="settings">
+        <div style="color: #e74c3c; margin-bottom: 20px; padding: 15px; background-color: #fdeaea; border-radius: 8px;">
+            <h3 style="margin-top: 0;">功能暂时搁置说明：</h3>
+            <p>由于Word文件拆分功能需要更强大的技术支持，目前仅使用前端技术无法完成此功能。要实现完整的Word文件拆分功能，需要：</p>
+            <ul>
+                <li>服务器端技术支持（如 Node.js、Python 等）</li>
+                <li>专业的文档处理库</li>
+                <li>成熟的第三方服务支持</li>
+            </ul>
+            <p>我们将在后续版本中添加此功能，给您带来不便深表歉意。</p>
+        </div>
+
+        <h3>拆分方式设置（功能暂未开放）</h3>
+        <div class="option-group">
+            <label>请选择拆分方式：</label>
+            <select id="splitMethod" onchange="updateSplitOptions()" disabled>
+                <option value="byFileCount">按文件数量拆分</option>
+                <option value="byPageCount">按页面数量拆分</option>
+                <option value="byOutline">按最高级别大纲拆分</option>
+            </select>
+        </div>
+
+        <div class="option-group" id="fileCountOption">
+            <label>文件数量（最少2）：</label>
+            <input type="number" id="fileCount" min="2" value="2" disabled>
+            <p class="option-desc">将文档平均拆分成指定数量的文件</p>
+        </div>
+
+        <div class="option-group" id="pageCountOption" style="display: none;">
+            <label>每个文件的页面数量（最少1）：</label>
+            <input type="number" id="pageCount" min="1" value="1" disabled>
+            <p class="option-desc">按指定的页数对文档进行拆分</p>
+        </div>
+
+        <div class="option-group" id="outlineOption" style="display: none;">
+            <label>拆分后的文件命名方式：</label>
+            <select id="fileNameMethod" disabled>
+                <option value="outline">大纲名称</option>
+                <option value="number">文件名加数字序号</option>
+            </select>
+            <p class="option-desc">根据文档的大纲结构进行拆分</p>
+        </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="action-buttons">
+        <button id="processButton" onclick="processFiles()" class="process-btn" disabled>开始拆分</button>
+    </div>
+
+    <!-- 进度条和提示 -->
+    <div class="progress-bar">
+        <div class="progress"></div>
+    </div>
+    <div class="progress-text"></div>
+
+    <!-- 脚本 -->
+    <script>
+        let fileList = [];
+
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            for (let file of files) {
+                if (file.name.endsWith('.doc') || file.name.endsWith('.docx')) {
+                    addFile(file);
+                }
+            }
+            event.target.value = '';
+            updateClearButtonVisibility();
+        }
+
+        function addFile(file) {
+            const fileInfo = {
+                index: fileList.length + 1,
+                name: file.name,
+                path: file.webkitRelativePath || file.name,
+                extension: file.name.split('.').pop(),
+                createTime: new Date(file.lastModified).toLocaleString(),
+                modifyTime: new Date(file.lastModified).toLocaleString(),
+                file: file
+            };
+            fileList.push(fileInfo);
+            updateFileList();
+        }
+
+        function updateFileList() {
+            const tbody = document.getElementById('fileListBody');
+            if (fileList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-files-message">暂无文件，请添加文件...</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            fileList.forEach((file, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${file.index}</td>
+                    <td>${file.name}</td>
+                    <td>${file.path}</td>
+                    <td>${file.extension}</td>
+                    <td>${file.createTime}</td>
+                    <td>${file.modifyTime}</td>
+                    <td><button onclick="removeFile(${index})" class="cancel-btn">取消</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+            updateProcessButtonState();
+        }
+
+        function removeFile(index) {
+            fileList.splice(index, 1);
+            fileList.forEach((file, i) => file.index = i + 1);
+            updateFileList();
+            updateClearButtonVisibility();
+        }
+
+        function clearList() {
+            fileList = [];
+            updateFileList();
+            updateClearButtonVisibility();
+            updateProcessButtonState();
+        }
+
+        function updateClearButtonVisibility() {
+            const clearListBtn = document.getElementById('clearListBtn');
+            clearListBtn.style.display = fileList.length > 0 ? 'block' : 'none';
+        }
+
+        function updateProcessButtonState() {
+            const processButton = document.getElementById('processButton');
+            processButton.disabled = fileList.length === 0;
+        }
+
+        function updateSplitOptions() {
+            const splitMethod = document.getElementById('splitMethod').value;
+            document.getElementById('fileCountOption').style.display = splitMethod === 'byFileCount' ? 'block' : 'none';
+            document.getElementById('pageCountOption').style.display = splitMethod === 'byPageCount' ? 'block' : 'none';
+            document.getElementById('outlineOption').style.display = splitMethod === 'byOutline' ? 'block' : 'none';
+        }
+
+        async function processFiles() {
+            const processButton = document.getElementById('processButton');
+            const progressBar = document.querySelector('.progress-bar');
+            const progress = document.querySelector('.progress');
+            const progressText = document.querySelector('.progress-text');
+
+            processButton.disabled = true;
+            progressBar.style.display = 'block';
+
+            try {
+                for (let i = 0; i < fileList.length; i++) {
+                    const percentage = ((i + 1) / fileList.length) * 100;
+                    progress.style.width = percentage + '%';
+                    progressText.textContent = `正在处理: ${fileList[i].name} (${Math.round(percentage)}%)`;
+
+                    try {
+                        await splitWordFile(fileList[i]);
+                    } catch (error) {
+                        console.error(`处理文件 ${fileList[i].name} 时出错:`, error);
+                        alert(`处理文件 ${fileList[i].name} 时出错: ${error.message}`);
+                    }
+                }
+
+                progressText.textContent = '处理完成！';
+                alert('所有文件处理完成！');
+
+            } catch (error) {
+                progressText.textContent = '处理失败: ' + (error.message || '未知错误');
+                console.error('处理失败:', error);
+            } finally {
+                processButton.disabled = false;
+            }
+        }
+
+        async function splitWordFile(fileInfo) {
+            const file = fileInfo.file;
+            const arrayBuffer = await file.arrayBuffer();
+            const zip = new JSZip();
+            const content = await zip.loadAsync(arrayBuffer);
+
+            // TODO: 根据拆分方式进行拆分
+            const splitMethod = document.getElementById('splitMethod').value;
+
+            if (splitMethod === 'byFileCount') {
+                const fileCount = parseInt(document.getElementById('fileCount').value);
+                // 实现按文件数量拆分的逻辑
+                alert('按文件数量拆分功能暂未实现');
+            } else if (splitMethod === 'byPageCount') {
+                const pageCount = parseInt(document.getElementById('pageCount').value);
+                // 实现按页面数量拆分的逻辑
+                alert('按页面数量拆分功能暂未实现');
+            } else if (splitMethod === 'byOutline') {
+                const fileNameMethod = document.getElementById('fileNameMethod').value;
+                // 实现按最高级别大纲拆分的逻辑
+                alert('按最高级别大纲拆分功能暂未实现');
+            }
+        }
+
+    </script>
+</body>
+</html> 

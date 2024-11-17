@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>添加Word页眉页脚</title>
+    <!-- 引入必要的库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.21.0/docxtemplater.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- 引入 Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* 全局样式 */
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .back-button {
+            padding: 10px 20px;
+            background-color: #34495e;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+        }
+
+        .back-button:hover {
+            background-color: #2c3e50;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .action-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .action-btn i {
+            font-size: 18px;
+        }
+
+        .add-file-btn {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .add-file-btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .add-folder-btn {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .add-folder-btn:hover {
+            background-color: #27ae60;
+            transform: translateY(-2px);
+        }
+
+        .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .file-list {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .file-list th,
+        .file-list td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .file-list th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .file-list tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .no-files-message {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+        }
+
+        .setting-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .setting-group input[type="text"],
+        .setting-group input[type="number"],
+        .setting-group select {
+            width: 300px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .setting-group input:focus,
+        .setting-group select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52,152,219,0.2);
+        }
+
+        .radio-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .action-buttons {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .process-btn {
+            padding: 12px 25px;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .process-btn:hover {
+            background-color: #27ae60;
+            transform: translateY(-2px);
+        }
+
+        .process-btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: #2ecc71;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .cancel-btn {
+            padding: 6px 12px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .cancel-btn:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="aa.html" class="back-button">
+            <i class="fas fa-arrow-left"></i> 返回主页
+        </a>
+        <div class="top-actions">
+            <button onclick="document.getElementById('fileInput').click()" class="action-btn add-file-btn">
+                <i class="fas fa-file-upload"></i>
+                添加文件
+            </button>
+            <input type="file" id="fileInput" multiple accept=".doc,.docx" style="display: none;" onchange="handleFileSelect(event)">
+
+            <button onclick="document.getElementById('folderInput').click()" class="action-btn add-folder-btn">
+                <i class="fas fa-folder-plus"></i>
+                从文件夹导入
+            </button>
+            <input type="file" id="folderInput" webkitdirectory directory multiple accept=".doc,.docx" style="display: none;" onchange="handleFileSelect(event)">
+
+            <button id="clearListBtn" onclick="clearList()" class="action-btn clear-btn" style="display: none;">
+                <i class="fas fa-trash-alt"></i> 清空列表
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <table class="file-list">
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>名称</th>
+                    <th>路径</th>
+                    <th>扩展名</th>
+                    <th>创建时间</th>
+                    <th>修改时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="fileListBody">
+                <tr>
+                    <td colspan="7" class="no-files-message">暂无文件，请添加文件...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="container">
+        <!-- 目标 -->
+        <div class="setting-group">
+            <label>目标：</label>
+            <div class="radio-group">
+                <label><input type="radio" name="target" value="header_footer" checked> 页眉与页脚</label>
+                <label><input type="radio" name="target" value="header"> 页眉</label>
+                <label><input type="radio" name="target" value="footer"> 页脚</label>
+            </div>
+        </div>
+        <!-- 位置 -->
+        <div class="setting-group">
+            <label>位置：</label>
+            <div class="radio-group">
+                <label><input type="radio" name="position" value="left"> 靠左</label>
+                <label><input type="radio" name="position" value="center" checked> 居中</label>
+                <label><input type="radio" name="position" value="right"> 靠右</label>
+            </div>
+        </div>
+        <!-- 展示类型 -->
+        <div class="setting-group">
+            <label>展示类型：</label>
+            <select id="displayType" onchange="updateDisplayType()">
+                <option value="all">所有页</option>
+                <option value="first_nonfirst">区分首页和非首页</option>
+                <option value="odd_even">区分奇偶页</option>
+                <option value="first_odd_even">区分首页和奇偶页</option>
+            </select>
+        </div>
+        <!-- 动态生成的额外选项 -->
+        <div id="additionalOptions"></div>
+    </div>
+
+    <div class="action-buttons">
+        <button id="processButton" onclick="processFiles()" class="process-btn" disabled>开始处理</button>
+    </div>
+
+    <!-- 进度条和提示 -->
+    <div class="progress-bar">
+        <div class="progress"></div>
+    </div>
+    <div class="progress-text"></div>
+
+    <!-- 脚本 -->
+    <script>
+        // 文件列表管理
+        let fileList = [];
+
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            for (let file of files) {
+                if (file.name.endsWith('.doc') || file.name.endsWith('.docx')) {
+                    addFile(file);
+                }
+            }
+            event.target.value = '';
+            updateClearButtonVisibility();
+            checkProcessAvailable();
+        }
+
+        function addFile(file) {
+            const fileInfo = {
+                index: fileList.length + 1,
+                name: file.name,
+                path: file.webkitRelativePath || file.name,
+                extension: file.name.split('.').pop(),
+                createTime: new Date(file.lastModified).toLocaleString(),
+                modifyTime: new Date(file.lastModified).toLocaleString(),
+                file: file
+            };
+            fileList.push(fileInfo);
+            updateFileList();
+        }
+
+        function updateFileList() {
+            const tbody = document.getElementById('fileListBody');
+            if (!tbody) {
+                console.error('找不到文件列表元素');
+                return;
+            }
+
+            if (fileList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-files-message">暂无文件，请添加文件...</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            fileList.forEach((file, index) => {
+                const row = document.createElement('tr');
+                const cells = [
+                    file.index,
+                    file.name,
+                    file.path,
+                    file.extension,
+                    file.createTime,
+                    file.modifyTime,
+                    `<button onclick="removeFile(${index})" class="cancel-btn">取消</button>`
+                ];
+
+                cells.forEach(cellContent => {
+                    const td = document.createElement('td');
+                    if (typeof cellContent === 'string' && cellContent.includes('<button')) {
+                        td.innerHTML = cellContent;
+                    } else {
+                        td.textContent = cellContent;
+                    }
+                    row.appendChild(td);
+                });
+
+                tbody.appendChild(row);
+            });
+            checkProcessAvailable();
+        }
+
+        function removeFile(index) {
+            fileList.splice(index, 1);
+            fileList.forEach((file, i) => file.index = i + 1);
+            updateFileList();
+            updateClearButtonVisibility();
+            checkProcessAvailable();
+        }
+
+        function clearList() {
+            fileList = [];
+            updateFileList();
+            updateClearButtonVisibility();
+            checkProcessAvailable();
+        }
+
+        function updateClearButtonVisibility() {
+            const clearListBtn = document.getElementById('clearListBtn');
+            if (clearListBtn) {
+                clearListBtn.style.display = fileList.length > 0 ? 'block' : 'none';
+            }
+        }
+
+        function checkProcessAvailable() {
+            const processButton = document.getElementById('processButton');
+            processButton.disabled = fileList.length === 0;
+        }
+
+        // 展示类型逻辑
+        function updateDisplayType() {
+            const displayType = document.getElementById('displayType').value;
+            const additionalOptions = document.getElementById('additionalOptions');
+            additionalOptions.innerHTML = '';
+
+            if (displayType === 'all') {
+                const inputGroup = document.createElement('div');
+                inputGroup.classList.add('setting-group');
+                const label = document.createElement('label');
+                label.textContent = '请输入内容：';
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.id = 'content_all';
+                input.placeholder = '请输入文本内容';
+                inputGroup.appendChild(label);
+                inputGroup.appendChild(input);
+                additionalOptions.appendChild(inputGroup);
+            } else {
+                const options = {
+                    'first_nonfirst': ['修改首页', '修改非首页'],
+                    'odd_even': ['修改奇数页', '修改偶数页'],
+                    'first_odd_even': ['修改首页', '修改奇数页', '修改偶数页']
+                };
+                const modifyOptions = options[displayType];
+                const checkboxGroup = document.createElement('div');
+                checkboxGroup.classList.add('setting-group');
+                const label = document.createElement('label');
+                label.textContent = '请选择要修改的项：';
+                checkboxGroup.appendChild(label);
+                modifyOptions.forEach(option => {
+                    const checkboxLabel = document.createElement('label');
+                    checkboxLabel.style.marginRight = '15px';
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = option;
+                    checkbox.addEventListener('change', () => toggleInputField(checkbox, option));
+                    checkboxLabel.appendChild(checkbox);
+                    checkboxLabel.appendChild(document.createTextNode(option));
+                    checkboxGroup.appendChild(checkboxLabel);
+                });
+                additionalOptions.appendChild(checkboxGroup);
+            }
+        }
+
+        function toggleInputField(checkbox, option) {
+            let inputField = document.getElementById(`input_${option}`);
+            if (checkbox.checked) {
+                if (!inputField) {
+                    const inputGroup = document.createElement('div');
+                    inputGroup.classList.add('setting-group');
+                    const label = document.createElement('label');
+                    label.textContent = `请输入${option}的内容：`;
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.id = `input_${option}`;
+                    input.placeholder = '请输入文本内容';
+                    inputGroup.appendChild(label);
+                    inputGroup.appendChild(input);
+                    checkbox.parentNode.parentNode.appendChild(inputGroup);
+                }
+            } else {
+                if (inputField) {
+                    inputField.parentNode.remove();
+                }
+            }
+        }
+
+        async function processFiles() {
+            const processButton = document.getElementById('processButton');
+            const progressBar = document.querySelector('.progress-bar');
+            const progress = document.querySelector('.progress');
+            const progressText = document.querySelector('.progress-text');
+
+            processButton.disabled = true;
+            progressBar.style.display = 'block';
+
+            try {
+                let processedFiles = [];
+
+                for (let i = 0; i < fileList.length; i++) {
+                    const percentage = ((i + 1) / fileList.length) * 100;
+                    progress.style.width = percentage + '%';
+                    progressText.textContent = `正在处理: ${fileList[i].name} (${Math.round(percentage)}%)`;
+
+                    try {
+                        const processedContent = await addHeaderFooter(fileList[i].file);
+                        processedFiles.push({
+                            name: fileList[i].name,
+                            content: processedContent
+                        });
+                    } catch (error) {
+                        console.error(`处理文件 ${fileList[i].name} 时出错:`, error);
+                        throw new Error(`处理文件 ${fileList[i].name} 时出错: ${error.message}`);
+                    }
+                }
+
+                progressText.textContent = '处理完成！';
+                downloadFiles(processedFiles);
+            } catch (error) {
+                progressText.textContent = '处理失败: ' + (error.message || '未知错误');
+                console.error('处理失败:', error);
+            } finally {
+                processButton.disabled = false;
+            }
+        }
+
+        async function addHeaderFooter(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const arrayBuffer = e.target.result;
+                    const zip = new JSZip();
+                    zip.loadAsync(arrayBuffer).then(zip => {
+                        const doc = new window.docxtemplater().loadZip(zip);
+
+                        // 获取用户输入的内容
+                        const content = document.getElementById('content_all') ? document.getElementById('content_all').value : '';
+
+                        // 这里假设我们将内容添加到页眉
+                        const headerXml = `
+                            <w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                                <w:p>
+                                    <w:r>
+                                        <w:t>${content}</w:t>
+                                    </w:r>
+                                </w:p>
+                            </w:hdr>
+                        `;
+
+                        // 添加页眉到文档
+                        doc.zip.file('word/header1.xml', headerXml);
+
+                        // 更新 relationships
+                        const relsPath = 'word/_rels/document.xml.rels';
+                        const relsXml = doc.zip.file(relsPath).asText();
+                        const newRelsXml = relsXml.replace('</Relationships>', `
+                            <Relationship Id="rId999" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header"
+                                Target="header1.xml"/>
+                        </Relationships>`);
+                        doc.zip.file(relsPath, newRelsXml);
+
+                        // 在 sectPr 中引用新的页眉
+                        const docXml = doc.getFullText();
+                        const newDocXml = docXml.replace('</w:sectPr>', `
+                            <w:headerReference w:type="default" r:id="rId999"/>
+                        </w:sectPr>`);
+                        doc.setFullText(newDocXml);
+
+                        // 生成新的文档
+                        const output = doc.getZip().generate({
+                            type: "blob",
+                            mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        });
+
+                        resolve(output);
+                    }).catch(error => {
+                        console.error('处理文件时出错:', error);
+                        reject(new Error('处理文件时出错: ' + (error.message || '未知错误')));
+                    });
+                };
+                reader.onerror = () => reject(new Error('读取文件时出错'));
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function downloadFiles(processedFiles) {
+            processedFiles.forEach(file => {
+                saveAs(file.content, `processed_${file.name}`);
+            });
+        }
+
+        // 初始化
+        updateDisplayType();
+    </script>
+</body>
+</html> 

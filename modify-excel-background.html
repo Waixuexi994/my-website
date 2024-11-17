@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>删除或修改Excel背景图片</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://unpkg.com/jszip@3.7.1/dist/jszip.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .back-button {
+            padding: 8px 15px;
+            background-color: #34495e;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .back-button:hover {
+            background-color: #2c3e50;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .file-list {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .file-list th, .file-list td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .file-list th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .file-list tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .action-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .action-description {
+            color: #666;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 4px;
+            background-color: #2c3e50;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #34495e;
+            transform: translateY(-2px);
+        }
+
+        .cancel-btn {
+            background-color: #e74c3c;
+        }
+
+        .cancel-btn:hover {
+            background-color: #c0392b;
+        }
+
+        #clearListBtn {
+            display: none;
+        }
+
+        .process-btn {
+            background-color: #2ecc71;
+            padding: 12px 30px;
+            font-size: 16px;
+        }
+
+        .process-btn:hover {
+            background-color: #27ae60;
+        }
+
+        .process-btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .download-btn {
+            background-color: #3498db;
+            padding: 12px 30px;
+            font-size: 16px;
+        }
+
+        .download-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .progress-container {
+            margin-top: 20px;
+            padding: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: #2ecc71;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .no-files-message {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            font-style: italic;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .setting-group:last-child {
+            border-bottom: none;
+        }
+
+        .setting-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .setting-group select, 
+        .setting-group input[type="text"],
+        .setting-group input[type="number"] {
+            width: 300px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .setting-group select:focus, 
+        .setting-group input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52,152,219,0.2);
+        }
+
+        /* 添加动画效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .container, .action-container {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        /* 添加响应式设计 */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .top-actions {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            .file-list {
+                display: block;
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="back-button" onclick="window.location.href='aa.html'">
+            ← 返回主页
+        </button>
+        <div class="top-actions">
+            <button onclick="document.getElementById('fileInput').click()">添加文件</button>
+            <input type="file" id="fileInput" multiple accept=".xls,.xlsx,.xlsm,.xlsb,.xlt,.xltx,.xltm" style="display: none" onchange="handleFileSelect(event)">
+            <button onclick="document.getElementById('folderInput').click()">从文件夹中导入</button>
+            <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none" onchange="handleFileSelect(event)">
+            <button id="clearListBtn" onclick="clearList()" class="cancel-btn">清空列表</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <table class="file-list">
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>名称</th>
+                    <th>路径</th>
+                    <th>扩展名</th>
+                    <th>创建时间</th>
+                    <th>修改时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="fileListBody">
+                <tr>
+                    <td colspan="7" class="no-files-message">暂无文件，请添加文件...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="action-container">
+        <div class="action-description">
+            选择需要操作的Excel文件，您可以批量删除Excel文件的背景图片。
+            处理完成后，您可以下载处理好的文件。
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress"></div>
+            </div>
+            <div class="progress-text"></div>
+        </div>
+
+        <div class="action-buttons">
+            <button id="processButton" onclick="processFiles()" class="process-btn" disabled>
+                开始处理
+            </button>
+            <button id="downloadButton" onclick="downloadFiles()" class="download-btn" style="display: none;">
+                下载文件
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 文件列表管理
+        let fileList = [];
+
+        // 处理文件选择
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            const excelExtensions = ['.xls', '.xlsx', '.xlsm', '.xlsb', '.xlt', '.xltx', '.xltm'];
+            
+            for (let file of files) {
+                const extension = '.' + file.name.split('.').pop().toLowerCase();
+                if (excelExtensions.includes(extension)) {
+                    addFile(file);
+                }
+            }
+            // 清空input的value，确能重复选择同一个文件
+            event.target.value = '';
+            updateClearButtonVisibility();
+            checkProcessingAvailable();
+        }
+
+        function addFile(file) {
+            const fileInfo = {
+                index: fileList.length + 1,
+                name: file.name,
+                path: file.webkitRelativePath || file.name,
+                extension: file.name.split('.').pop(),
+                createTime: new Date(file.lastModified).toLocaleString(),
+                modifyTime: new Date(file.lastModified).toLocaleString(),
+                file: file
+            };
+            fileList.push(fileInfo);
+            updateFileList();
+            checkProcessingAvailable();
+        }
+
+        function updateFileList() {
+            const tbody = document.getElementById('fileListBody');
+            if (fileList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-files-message">暂无文件，请添加文件...</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            fileList.forEach((file, index) => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${file.index}</td>
+                    <td>${file.name}</td>
+                    <td>${file.path}</td>
+                    <td>${file.extension}</td>
+                    <td>${file.createTime}</td>
+                    <td>${file.modifyTime}</td>
+                    <td><button onclick="removeFile(${index})" class="cancel-btn">取消</button></td>
+                `;
+            });
+        }
+
+        function removeFile(index) {
+            fileList.splice(index, 1);
+            fileList.forEach((file, i) => file.index = i + 1);
+            updateFileList();
+            updateClearButtonVisibility();
+            checkProcessingAvailable();
+        }
+
+        function clearList() {
+            fileList = [];
+            updateFileList();
+            updateClearButtonVisibility();
+            checkProcessingAvailable();
+        }
+
+        function updateClearButtonVisibility() {
+            const clearListBtn = document.getElementById('clearListBtn');
+            clearListBtn.style.display = fileList.length > 0 ? 'block' : 'none';
+        }
+
+        // 检查是否可以开始处理
+        function checkProcessingAvailable() {
+            const processButton = document.getElementById('processButton');
+            const hasFiles = fileList.length > 0;
+            processButton.disabled = !hasFiles;
+        }
+
+        // 实现文件处理功能
+        async function processFiles() {
+            const processButton = document.getElementById('processButton');
+            const downloadButton = document.getElementById('downloadButton');
+            const progressBar = document.querySelector('.progress-bar');
+            const progress = document.querySelector('.progress');
+            const progressText = document.querySelector('.progress-text');
+
+            processButton.disabled = true;
+            progressBar.style.display = 'block';
+
+            try {
+                let processedFiles = [];
+
+                for (let i = 0; i < fileList.length; i++) {
+                    const percentage = ((i + 1) / fileList.length) * 100;
+                    progress.style.width = percentage + '%';
+                    progressText.textContent = `正在处理: ${fileList[i].name} (${Math.round(percentage)}%)`;
+
+                    try {
+                        const processedContent = await processFile(fileList[i].file);
+                        processedFiles.push({
+                            name: fileList[i].name,
+                            content: processedContent
+                        });
+                    } catch (error) {
+                        console.error(`处理文件 ${fileList[i].name} 时出错:`, error);
+                        throw new Error(`处理文件 ${fileList[i].name} 时出错: ${error.message}`);
+                    }
+                }
+
+                progressText.textContent = '处理完成！';
+                downloadButton.style.display = 'inline-block';
+                window.processedFiles = processedFiles;
+            } catch (error) {
+                progressText.textContent = '处理失败: ' + (error.message || '未知错误');
+                console.error('处理失败:', error);
+            } finally {
+                processButton.disabled = false;
+            }
+        }
+
+        // 处理单个文件
+        async function processFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+
+                        // 获取第一个工作表
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+
+                        // 删除背景图片
+                        if (worksheet['!background']) {
+                            delete worksheet['!background'];
+                        }
+
+                        // 生成新的 Excel 文件
+                        const newWorkbook = XLSX.write(workbook, {
+                            bookType: 'xlsx',
+                            type: 'array'
+                        });
+
+                        // 创建 Blob 对象
+                        const blob = new Blob([newWorkbook], {
+                            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                        });
+
+                        resolve(blob);
+                    } catch (error) {
+                        console.error('处理文件时出错:', error);
+                        reject(new Error('处理文件时出错: ' + (error.message || '未知错误')));
+                    }
+                };
+                reader.onerror = () => reject(new Error('读取文件时出错'));
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // 下载处理后的文件
+        async function downloadFiles() {
+            try {
+                window.processedFiles.forEach(file => {
+                    saveAs(file.content, `no_background_${file.name}`);
+                });
+            } catch (error) {
+                alert('下载失败: ' + error.message);
+            }
+        }
+
+        // 初始化
+        updateClearButtonVisibility();
+    </script>
+</body>
+</html> 

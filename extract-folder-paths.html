@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>提取文件夹路径名称清单</title>
+    <!-- 引入必要的库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- 引入 Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* 全局样式 */
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        /* 页头样式 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .back-button {
+            padding: 10px 20px;
+            background-color: #34495e;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+        }
+
+        .back-button:hover {
+            background-color: #2c3e50;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .action-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .action-btn i {
+            font-size: 18px;
+        }
+
+        .add-folder-btn {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .add-folder-btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .clear-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        /* 文件列表样式 */
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .file-list {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .file-list th, .file-list td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        .file-list th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .file-list tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* 导出选项样式 */
+        .export-options {
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .export-btn {
+            padding: 12px 25px;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .export-btn:hover {
+            background-color: #27ae60;
+            transform: translateY(-2px);
+        }
+
+        .export-btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 取消文件按钮 */
+        .cancel-btn {
+            padding: 6px 12px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .cancel-btn:hover {
+            background-color: #c0392b;
+        }
+
+        /* 文件列表为空时的提示 */
+        .no-files-message {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <!-- 页头 -->
+    <div class="header">
+        <a href="aa.html" class="back-button">
+            <i class="fas fa-arrow-left"></i> 返回主页
+        </a>
+        <div class="top-actions">
+            <button onclick="document.getElementById('folderInput').click()" class="action-btn add-folder-btn">
+                <i class="fas fa-folder-plus"></i> 添加文件夹
+            </button>
+            <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none" onchange="handleFileSelect(event)">
+
+            <button id="clearListBtn" onclick="clearList()" class="action-btn clear-btn" style="display: none;">
+                <i class="fas fa-trash-alt"></i> 清空列表
+            </button>
+        </div>
+    </div>
+
+    <!-- 文件列表 -->
+    <div class="container">
+        <table class="file-list">
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>名称</th>
+                    <th>路径</th>
+                    <th>扩展名</th>
+                    <th>创建时间</th>
+                    <th>修改时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="fileListBody">
+                <tr>
+                    <td colspan="7" class="no-files-message">暂无文件，请添加文件夹...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 导出选项 -->
+    <div class="export-options">
+        <div>
+            <label>请选择导出格式：</label>
+            <select id="exportFormat" style="padding: 8px; border-radius: 4px; font-size: 14px;">
+                <option value="xlsx">Excel 文件 (.xlsx)</option>
+                <option value="txt">文本文件 (.txt)</option>
+            </select>
+        </div>
+        <button onclick="exportFileList()" class="export-btn" id="exportButton" disabled>
+            <i class="fas fa-file-export"></i> 导出文件列表
+        </button>
+    </div>
+
+    <!-- 脚本 -->
+    <script>
+        let fileList = [];
+
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            for (let file of files) {
+                addFile(file);
+            }
+            event.target.value = '';
+            updateClearButtonVisibility();
+            updateExportButtonState();
+        }
+
+        function addFile(file) {
+            const fileInfo = {
+                index: fileList.length + 1,
+                name: file.name,
+                path: file.webkitRelativePath || file.name,
+                extension: getFileExtension(file.name),
+                createTime: '', // 浏览器限制，无法获取精确的创建时间
+                modifyTime: '', // 浏览器限制，无法获取精确的修改时间
+                file: file
+            };
+            fileList.push(fileInfo);
+            updateFileList();
+        }
+
+        function getFileExtension(fileName) {
+            const parts = fileName.split('.');
+            return parts.length > 1 ? parts.pop() : '';
+        }
+
+        function updateFileList() {
+            const tbody = document.getElementById('fileListBody');
+            if (fileList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-files-message">暂无文件，请添加文件夹...</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            fileList.forEach((file, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${file.index}</td>
+                    <td>${file.name}</td>
+                    <td>${file.path}</td>
+                    <td>${file.extension}</td>
+                    <td>${file.createTime || 'N/A'}</td>
+                    <td>${file.modifyTime || 'N/A'}</td>
+                    <td><button onclick="removeFile(${index})" class="cancel-btn">取消</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+            updateExportButtonState();
+        }
+
+        function removeFile(index) {
+            fileList.splice(index, 1);
+            fileList.forEach((file, i) => file.index = i + 1);
+            updateFileList();
+            updateClearButtonVisibility();
+        }
+
+        function clearList() {
+            fileList = [];
+            updateFileList();
+            updateClearButtonVisibility();
+            updateExportButtonState();
+        }
+
+        function updateClearButtonVisibility() {
+            const clearListBtn = document.getElementById('clearListBtn');
+            clearListBtn.style.display = fileList.length > 0 ? 'block' : 'none';
+        }
+
+        function updateExportButtonState() {
+            const exportButton = document.getElementById('exportButton');
+            exportButton.disabled = fileList.length === 0;
+        }
+
+        function exportFileList() {
+            const format = document.getElementById('exportFormat').value;
+            if (format === 'xlsx') {
+                exportToExcel();
+            } else {
+                exportToTxt();
+            }
+        }
+
+        function exportToExcel() {
+            const wb = XLSX.utils.book_new();
+            const wsData = [
+                ['序号', '名称', '路径', '扩展名', '创建时间', '修改时间']
+            ];
+            fileList.forEach(file => {
+                wsData.push([
+                    file.index,
+                    file.name,
+                    file.path,
+                    file.extension,
+                    file.createTime || 'N/A',
+                    file.modifyTime || 'N/A'
+                ]);
+            });
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            XLSX.utils.book_append_sheet(wb, ws, '文件列表');
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([wbout], { type: 'application/octet-stream' });
+            saveAs(blob, '文件列表.xlsx');
+        }
+
+        function exportToTxt() {
+            let content = '';
+            fileList.forEach(file => {
+                content += `序号: ${file.index}\n`;
+                content += `名称: ${file.name}\n`;
+                content += `路径: ${file.path}\n`;
+                content += `扩展名: ${file.extension}\n`;
+                content += `创建时间: ${file.createTime || 'N/A'}\n`;
+                content += `修改时间: ${file.modifyTime || 'N/A'}\n`;
+                content += '-------------------------\n';
+            });
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            saveAs(blob, '文件列表.txt');
+        }
+    </script>
+</body>
+</html> 
