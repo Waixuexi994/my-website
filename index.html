@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>网站首页</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .sidebar {
+            width: 200px;
+            background-color: #34495e;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar li {
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            color: white;
+            font-size: 16px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar li i {
+            width: 24px;
+            text-align: center;
+            font-size: 20px;
+            margin-right: 10px;
+        }
+
+        .sidebar li:hover {
+            background-color: #2c3e50;
+            transform: translateX(5px);
+        }
+
+        .sidebar li.active {
+            background-color: #2980b9;
+        }
+
+        .content {
+            margin-left: 220px;
+            padding: 20px;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .function-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 20px 0;
+        }
+
+        .function-card {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .function-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .function-card i {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+
+        .function-card h3 {
+            margin: 10px 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .function-card p {
+            color: #666;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .function-buttons {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .function-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 为每个图标设置不同的颜色 */
+        .fa-house { color: #e74c3c; }
+        .fa-file-signature { color: #3498db; }
+        .fa-file-lines { color: #9b59b6; }
+        .fa-database { color: #f1c40f; }
+        .fa-arrows-rotate { color: #1abc9c; }
+        .fa-object-group { color: #e67e22; }
+        .fa-stamp { color: #e74c3c; }
+        .fa-circle-info { color: #3498db; }
+        .fa-image { color: #9b59b6; }
+        .fa-file-zipper { color: #f1c40f; }
+        .fa-ellipsis { color: #1abc9c; }
+        .fa-clipboard-list { color: #e74c3c; }
+        .fa-not-equal { color: #3498db; }
+        .fa-code { color: #9b59b6; }
+        .fa-network-wired { color: #f1c40f; }
+        .fa-vial { color: #1abc9c; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <ul>
+            <li onclick="switchPage('home')" class="active">
+                <i class="fas fa-house"></i>首页
+            </li>
+            <li onclick="switchPage('dataExtract')">
+                <i class="fas fa-database"></i>数据提取
+            </li>
+            <li onclick="switchPage('mergeSplit')">
+                <i class="fas fa-object-group"></i>合并拆分
+            </li>
+            <li onclick="switchPage('watermark')">
+                <i class="fas fa-stamp"></i>文件水印
+            </li>
+            <li onclick="switchPage('fileProperties')">
+                <i class="fas fa-circle-info"></i>文件属性
+            </li>
+            <li onclick="switchPage('imageProcess')">
+                <i class="fas fa-image"></i>图片处理
+            </li>
+            <li onclick="switchPage('compress')">
+                <i class="fas fa-file-zipper"></i>压缩解压
+            </li>
+            <li onclick="switchPage('more')">
+                <i class="fas fa-ellipsis"></i>更多功能
+            </li>
+            <li onclick="switchPage('filename')">
+                <i class="fas fa-file-signature"></i>文件名称
+            </li>
+            <li onclick="switchPage('filecontent')">
+                <i class="fas fa-file-lines"></i>文件内容
+            </li>
+            <li onclick="switchPage('formatConvert')">
+                <i class="fas fa-arrows-rotate"></i>格式转换
+            </li>
+        </ul>
+    </div>
+
+    <div class="content">
+        <!-- 首页 -->
+        <div id="home" class="page active">
+            <p style="white-space: pre-line; text-align: left; color: #666; line-height: 1.6; margin: 0;">
+<span style="color: #e74c3c; font-family: 'Microsoft YaHei'; font-weight: bold; font-size: 88px; display: block; text-align: center; margin: 20px 0 60px 0;">便捷软件工具站</span>
+
+开发者：书虫
+
+有不少功能都需要通过调用API的方式或者前端+后端结合的方式，再或者用本地文件通过用python代码进行处理的方式，所以暂时没办法直接实现全部功能。
+
+后续会尝试本地应用开发，或者学习一些后端功能后完善更多的文件处理工具。
+
+对这个网站有什么建议可以在你看见这篇文章的评论区中进行评论，我尝试看看能不能解决。</p>
+        </div>
+
+        <!-- 更多功能页面 -->
+        <div id="more" class="page">
+            <div class="function-buttons">
+                <div class="function-card" onclick="window.location.href='clipboard-monitor.html'">
+                    <i class="fas fa-clipboard-list" style="color: #e74c3c;"></i>
+                    <h3>系统剪贴板监听</h3>
+                    <p>实时监听系统剪贴板内容变化</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='text-diff.html'">
+                    <i class="fas fa-not-equal" style="color: #3498db;"></i>
+                    <h3>文本差异对比</h3>
+                    <p>对比两个文本文件的差异</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='json-editor.html'">
+                    <i class="fas fa-code" style="color: #9b59b6;"></i>
+                    <h3>JSon编辑器</h3>
+                    <p>编辑和格式化JSON数据</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='ip-address.html'">
+                    <i class="fas fa-network-wired" style="color: #f1c40f;"></i>
+                    <h3>我的IP地址</h3>
+                    <p>查看当前设备的IP地址信息</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='regex-tester.html'">
+                    <i class="fas fa-vial" style="color: #1abc9c;"></i>
+                    <h3>正则表达式测试</h3>
+                    <p>测试和验证正则表达式</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 数据提取页面 -->
+        <div id="dataExtract" class="page">
+            <div class="function-buttons">
+                <div class="function-card" onclick="window.location.href='extract-images.html'">
+                    <i class="fas fa-images" style="color: #e74c3c;"></i>
+                    <h3>提取文档中的图片</h3>
+                    <p>批量提取文档中的图片，支持 Word、Excel、PPT和 PDF 文件</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='extract-pages.html'">
+                    <i class="fas fa-file-export" style="color: #3498db;"></i>
+                    <h3>提取Word、PPT、PDF的页</h3>
+                    <p>批量提取文档中的指定页面，支持 Word、PPT 和 PDF 文件</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='extract-ppt-notes.html'">
+                    <i class="fas fa-sticky-note" style="color: #9b59b6;"></i>
+                    <h3>提取PPT中的备注</h3>
+                    <p>批量提取 PPT 文件中的备注信息</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='extract-file-paths.html'">
+                    <i class="fas fa-folder-tree" style="color: #f1c40f;"></i>
+                    <h3>提取文件路径名称清单</h3>
+                    <p>将所有文件的路径、名称等信息汇总到Excel或文本中</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='extract-folder-paths.html'">
+                    <i class="fas fa-folder-open" style="color: #f1c40f;"></i>
+                    <h3>提取文件夹路径名称清单</h3>
+                    <p>将指定文件夹中的所有文件和子文件夹的路径、名称、扩展名等基本信息汇总到Excel或记事本中</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 文件水印页面 -->
+        <div id="watermark" class="page">
+            <div class="function-buttons">
+                <div class="function-card" onclick="window.location.href='add-word-watermark.html'">
+                    <i class="fas fa-file-word" style="color: #4285f4;"></i>
+                    <h3>添加Word水印</h3>
+                    <p>批量给Word文件添加文字或图片水印</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='remove-word-watermark.html'">
+                    <i class="fas fa-eraser" style="color: #ea4335;"></i>
+                    <h3>删除Word水印</h3>
+                    <p>批量删除Word文件的水印信息</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='add-excel-watermark.html'">
+                    <i class="fas fa-file-excel" style="color: #34a853;"></i>
+                    <h3>添加Excel水印</h3>
+                    <p>批量给Excel文件添加文字或图片水印</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='modify-excel-background.html'">
+                    <i class="fas fa-paint-roller" style="color: #fbbc05;"></i>
+                    <h3>删除Excel水印</h3>
+                    <p>批量删除Excel文件的水印信息</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='remove-pdf-watermark.html'">
+                    <i class="fas fa-file-pdf" style="color: #ea4335;"></i>
+                    <h3>删除PDF水印</h3>
+                    <p>批量删除PDF文件中的水印信息</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='add-image-watermark.html'">
+                    <i class="fas fa-image" style="color: #4285f4;"></i>
+                    <h3>图片添���水印</h3>
+                    <p>批量给图片文件添加文字或图片水印</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 压缩解压页面 -->
+        <div id="compress" class="page">
+            <div class="function-buttons">
+                <div class="function-card" onclick="window.location.href='word-optimize.html'">
+                    <i class="fas fa-file-word" style="color: #4285f4;"></i>
+                    <h3>Word优化与压缩</h3>
+                    <p>优化和压缩Word文档，减小文件体积</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='file-to-archive.html'">
+                    <i class="fas fa-file-archive" style="color: #fbbc05;"></i>
+                    <h3>文件转成压缩包</h3>
+                    <p>将单个或多个文件打包成ZIP压缩包</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='folder-to-archive.html'">
+                    <i class="fas fa-folder-plus" style="color: #34a853;"></i>
+                    <h3>文件夹转成压缩包</h3>
+                    <p>将整个文件夹打包成ZIP压缩包</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='archive-extractor.html'">
+                    <i class="fas fa-box-open" style="color: #ea4335;"></i>
+                    <h3>压缩包文件解压</h3>
+                    <p>解压ZIP、RAR等格式的压缩文件</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 图片处理页面 -->
+        <div id="imageProcess" class="page">
+            <div class="function-buttons">
+                <div class="function-card" onclick="window.location.href='image-compressor.html'">
+                    <i class="fas fa-compress-arrows-alt" style="color: #FF6B6B;"></i>
+                    <h3>图片压缩工具</h3>
+                    <p>调整图片的宽高和画质，减小文件体积</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='image-editor.html'">
+                    <i class="fas fa-edit" style="color: #4ECDC4;"></i>
+                    <h3>图片编辑</h3>
+                    <p>编辑、裁剪、旋转和添加滤镜等</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='image-color-converter.html'">
+                    <i class="fas fa-palette" style="color: #45B7D1;"></i>
+                    <h3>图片颜色模型转换</h3>
+                    <p>在RGB、CMYK等颜色模型间转换</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 文件属性页面 -->
+        <div id="fileProperties" class="page">
+            <div class="function-buttons">
+                <div class="function-card" onclick="window.location.href='image-metadata-cleaner.html'">
+                    <i class="fas fa-image" style="color: #FF6B6B;"></i>
+                    <h3>清空图片的元数据</h3>
+                    <p>清除图片中的EXIF等元数据信息</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='office-metadata-cleaner.html'">
+                    <i class="fas fa-file-alt" style="color: #4ECDC4;"></i>
+                    <h3>清空Office和PDF的元数据</h3>
+                    <p>清除文档中的作者、修改时间等信息</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='word-protection.html'">
+                    <i class="fas fa-lock" style="color: #45B7D1;"></i>
+                    <h3>添加或删除Word保护</h3>
+                    <p>设置或移除Word文档的编辑保护</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 合并拆分页面 -->
+        <div id="mergeSplit" class="page">
+            <div class="function-buttons">
+                <div class="function-card" onclick="window.location.href='split-word-files.html'">
+                    <i class="fas fa-file-word" style="color: #4285f4;"></i>
+                    <h3>Word拆分成多个文件</h3>
+                    <p>将Word文件按指定页数拆分成多个Word文件</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='split-text-files.html'">
+                    <i class="fas fa-file-alt" style="color: #f39c12;"></i>
+                    <h3>文本拆分成多个文件</h3>
+                    <p>将文本文件按指定行数拆分成多个文本文件</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='merge-text-files.html'">
+                    <i class="fas fa-file-alt" style="color: #27ae60;"></i>
+                    <h3>文本合并成单个文件</h3>
+                    <p>将多个文本文件合并成一个文件，支持批量处理</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='merge-images.html'">
+                    <i class="fas fa-images" style="color: #e74c3c;"></i>
+                    <h3>图片合并成单个文件</h3>
+                    <p>将所有图片合并成一个文件，支持批量处理</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 文件名称页面 -->
+        <div id="filename" class="page">
+            <div class="function-buttons">
+                <div class="function-card" onclick="window.location.href='arrange-file-serial-numbers.html'">
+                    <i class="fas fa-sort-numeric-down" style="color: #e67e22;"></i>
+                    <h3>编排文件序号</h3>
+                    <p>按数字、日期时间或随机文本批量修改文件名</p>
+                </div>
+                <div class="function-card" onclick="window.location.href='arrange-folder-serial-numbers.html'">
+                    <i class="fas fa-folder-plus" style="color: #3498db;"></i>
+                    <h3>编排文件夹序号</h3>
+                    <p>按数字、日期时间或随机文本批量修改文件夹名</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 格式转换页面 -->
+        <div id="formatConvert" class="page">
+            <div class="function-buttons">
+                <!-- 其他功能卡片 -->
+                <!-- 新增的 Word 转换为其它格式 功能卡片 -->
+                <div class="function-card" onclick="window.location.href='word-convert.html'">
+                    <i class="fas fa-file-word" style="color: #4285f4;"></i>
+                    <h3>Word 转换为其它格式</h3>
+                    <p>将 Word 文件转换为多种格式，支持批量处理</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 文件内容页面 -->
+        <div id="filecontent" class="page">
+            <div class="function-buttons">
+                <!-- ... 之前的功能卡片 ... -->
+                <div class="function-card" onclick="window.location.href='add-word-header-footer.html'">
+                    <i class="fas fa-heading" style="color: #9b59b6;"></i>
+                    <h3>添加Word页眉页脚</h3>
+                    <p>批量给Word文件添加页眉与页脚，支持嵌入页码</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchPage(pageId) {
+            // 隐藏所有页面
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            // 显示选中的页面
+            document.getElementById(pageId).classList.add('active');
+
+            // 更新侧边栏选中状态
+            document.querySelectorAll('.sidebar li').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+        }
+    </script>
+</body>
+</html> 
